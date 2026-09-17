@@ -455,6 +455,7 @@ const FILAS_INICIALES = 5;
 
 let auditorias = []; // caché local de lo leído/guardado
 let modoLocal = false;
+let charts = {};
 
 let draft = crearDraftVacio();
 
@@ -884,7 +885,6 @@ function imprimirAuditoria(){
 }
 
 /* ================= GRAFICAS ================= */
-let charts = {};
 function promedio(arr){
   const nums = arr.filter(v=>v!=='' && v!=null && !isNaN(parseFloat(v))).map(v=>parseFloat(v));
   if(nums.length===0) return null;
