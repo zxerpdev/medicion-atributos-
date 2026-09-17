@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASC-F-01 · Auditoría de Atributos y Variables de Extrusión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --azul:#0D18A8;
+  --azul-acento:#227EF6;
+  --verde:#166534;
+  --rojo:#991b1b;
+  --fondo:#f8fafc;
+  --recuadro:#dbeafe;
+  --borde:#c7d2e5;
+  --texto:#1a1f2b;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:'Poppins','Segoe UI',-apple-system,sans-serif;
+  background:var(--fondo);
+  color:var(--texto);
+  font-weight:300;
+  -webkit-font-smoothing:antialiased;
+}
+header.topbar{
+  background:var(--azul);
+  color:#fff;
+  padding:14px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand .logo{font-weight:700;font-size:22px;letter-spacing:0.5px;}
+.brand .titulo{font-weight:500;font-size:14px;opacity:0.95;}
+.brand .titulo small{display:block;font-weight:300;font-size:11.5px;opacity:0.8;}
+nav.tabs{
+  display:flex;
+  gap:6px;
+  background:rgba(255,255,255,0.12);
+  border-radius:10px;
+  padding:4px;
+}
+nav.tabs button{
+  background:transparent;
+  border:none;
+  color:#fff;
+  padding:8px 16px;
+  font-family:inherit;
+  font-weight:500;
+  font-size:13.5px;
+  border-radius:7px;
+  cursor:pointer;
+  opacity:0.75;
+  transition:all .15s;
+}
+nav.tabs button.active{background:#fff;color:var(--azul);opacity:1;}
+nav.tabs button:hover{opacity:1;}
+
+main{max-width:1180px;margin:0 auto;padding:20px 18px 60px;}
+.view{display:none;}
+.view.active{display:block;}
+
+.card{
+  background:#fff;
+  border:1px solid var(--borde);
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:18px;
+}
+.card h2{
+  font-size:15px;
+  font-weight:700;
+  color:var(--azul);
+  margin:0 0 14px;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+}
+.card h2 .nota{
+  display:block;
+  font-weight:400;
+  text-transform:none;
+  font-size:11.5px;
+  color:#64748b;
+  letter-spacing:0;
+  margin-top:2px;
+}
+.grid-cabecera{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px;
+}
+.campo label{
+  display:block;
+  font-size:11.5px;
+  font-weight:600;
+  color:#475569;
+  margin-bottom:5px;
+  text-transform:uppercase;
+  letter-spacing:0.3px;
+}
+input[type=text],input[type=date],input[type=number],input[type=time],select,textarea{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--borde);
+  border-radius:7px;
+  font-family:inherit;
+  font-size:13.5px;
+  color:var(--texto);
+  background:#fff;
+}
+textarea{resize:vertical;min-height:34px;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--azul-acento);outline-offset:1px;}
+
+.tabla-wrap{overflow-x:auto;border:1px solid var(--borde);border-radius:8px;}
+table.matriz{border-collapse:collapse;width:100%;min-width:760px;font-size:12.5px;}
+table.matriz th,table.matriz td{border:1px solid var(--borde);padding:5px 6px;text-align:center;}
+table.matriz thead th{background:var(--recuadro);color:var(--azul);font-weight:600;font-size:11.5px;text-transform:uppercase;white-space:nowrap;}
+table.matriz td.etiqueta,table.matriz th.etiqueta{
+  text-align:left;background:#f1f5f9;font-weight:500;white-space:nowrap;min-width:150px;position:sticky;left:0;
+}
+table.matriz input,table.matriz select{border:none;padding:4px 3px;font-size:12.5px;text-align:center;background:transparent;width:100%;min-width:56px;}
+table.matriz input:focus,table.matriz select:focus{outline:1.5px solid var(--azul-acento);background:#fff;}
+.fila-acciones{margin-top:8px;display:flex;gap:8px;}
+
+table.atributos{border-collapse:collapse;width:100%;min-width:1300px;font-size:11.5px;}
+table.atributos th,table.atributos td{border:1px solid var(--borde);padding:4px;text-align:center;}
+table.atributos thead tr.grupo th{background:var(--azul);color:#fff;font-weight:600;font-size:11px;}
+table.atributos thead tr.sub th{background:var(--recuadro);color:var(--azul);font-weight:600;font-size:10px;text-transform:uppercase;}
+table.atributos td.num{width:26px;background:#f1f5f9;font-weight:600;color:#475569;}
+table.atributos td.nombre{text-align:left;min-width:170px;background:#f1f5f9;font-weight:500;white-space:nowrap;position:sticky;left:0;}
+table.atributos input[type=radio]{margin:0;cursor:pointer;}
+table.atributos select{border:none;font-size:10.5px;padding:2px;width:44px;background:transparent;}
+.leyenda-tipo{font-size:11px;color:#64748b;margin-top:8px;}
+.leyenda-tipo span{margin-right:14px;}
+
+.btn{
+  border:none;border-radius:8px;padding:9px 16px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;
+  transition:filter .15s;
+}
+.btn:hover{filter:brightness(0.92);}
+.btn-primario{background:var(--azul);color:#fff;}
+.btn-acento{background:var(--azul-acento);color:#fff;}
+.btn-secundario{background:#e2e8f0;color:#334155;}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+.btn-peligro{background:#fee2e2;color:var(--rojo);}
+
+.barra-guardar{
+  position:sticky;bottom:0;background:#fff;border-top:1px solid var(--borde);
+  padding:14px 20px;display:flex;justify-content:space-between;align-items:center;
+  border-radius:0 0 12px 12px;margin-top:-18px;
+}
+.msg{font-size:12.5px;color:#64748b;}
+.msg.ok{color:var(--verde);font-weight:600;}
+.msg.err{color:var(--rojo);font-weight:600;}
+
+/* ---- Consultar ---- */
+.filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px;}
+.filtros .campo{min-width:150px;}
+table.lista{width:100%;border-collapse:collapse;font-size:13px;}
+table.lista th{background:var(--recuadro);color:var(--azul);text-align:left;padding:9px 10px;font-weight:600;font-size:11.5px;text-transform:uppercase;}
+table.lista td{padding:9px 10px;border-bottom:1px solid var(--borde);}
+table.lista tr:hover td{background:#f8fafc;}
+.badge-turno{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--recuadro);color:var(--azul);}
+.vacio{padding:30px;text-align:center;color:#94a3b8;font-size:13.5px;}
+
+/* ---- Gráficas ---- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:16px 18px;}
+.kpi .valor{font-size:28px;font-weight:700;color:var(--azul);line-height:1.1;}
+.kpi .etiqueta{font-size:11.5px;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:0.3px;margin-top:4px;}
+.graficas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;}
+.chart-box{position:relative;height:280px;}
+
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:50;
+  align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;
+}
+.overlay.active{display:flex;}
+.modal{background:#fff;border-radius:14px;max-width:1000px;width:100%;padding:0;overflow:hidden;}
+.modal-head{background:var(--azul);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;}
+.modal-head h3{margin:0;font-size:15px;}
+.modal-body{padding:22px;max-height:78vh;overflow-y:auto;}
+.modal-close{background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;}
+
+.footer-nota{font-size:11px;color:#94a3b8;text-align:center;margin-top:20px;}
+
+#zona-impresion{display:none;}
+
+@media print{
+  header.topbar, nav.tabs, .barra-guardar, .filtros, .fila-acciones, .no-imprimir{display:none !important;}
+  body{background:#fff;}
+  main{max-width:100%;padding:0;}
+  .view{display:none !important;}
+  #zona-impresion{display:block !important;}
+  .card{border:1px solid #333;box-shadow:none;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">zubex</div>
+    <div class="titulo">Auditoría de Atributos y Variables de Extrusión
+      <small>ASC-F-01 · Rev. 11 · Sistema de Gestión de Inocuidad y Calidad</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="captura">Capturar</button>
+    <button class="tab-btn" data-view="consulta">Consultar</button>
+    <button class="tab-btn" data-view="graficas">Gráficas</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ CAPTURA ============ -->
+<section id="view-captura" class="view active">
+
+  <div class="card">
+    <h2>Datos generales</h2>
+    <div class="grid-cabecera">
+      <div class="campo"><label>Auditor</label><input type="text" id="c-auditor" placeholder="Nombre del auditor"></div>
+      <div class="campo"><label>Operador</label><input type="text" id="c-operador" placeholder="Nombre del operador"></div>
+      <div class="campo"><label>Línea</label><input type="text" id="c-linea" placeholder="Ej. Extrusora 3"></div>
+      <div class="campo"><label>Fecha</label><input type="date" id="c-fecha"></div>
+      <div class="campo"><label>Turno</label>
+        <select id="c-turno">
+          <option value="Matutino">Matutino</option>
+          <option value="Vespertino">Vespertino</option>
+          <option value="Nocturno">Nocturno</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Datos por muestra</h2>
+    <div class="tabla-wrap">
+      <table class="matriz" id="tabla-muestras"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Medición Ancho Plano</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-ancho"></table></div>
+    <div class="fila-acciones no-imprimir">
+      <button class="btn btn-secundario btn-sm" onclick="agregarFila('anchoPlano')">+ Agregar fila</button>
+      <button class="btn btn-peligro btn-sm" onclick="quitarFila('anchoPlano')">− Quitar última fila</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Medición de Calibre</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-calibre"></table></div>
+    <div class="fila-acciones no-imprimir">
+      <button class="btn btn-secundario btn-sm" onclick="agregarFila('calibre')">+ Agregar fila</button>
+      <button class="btn btn-peligro btn-sm" onclick="quitarFila('calibre')">− Quitar última fila</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Encogimiento</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-encogimiento"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Fuerza de sellos</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-fuerza"></table></div>
+    <div class="fila-acciones no-imprimir">
+      <button class="btn btn-secundario btn-sm" onclick="agregarFila('fuerzaSellos')">+ Agregar fila</button>
+      <button class="btn btn-peligro btn-sm" onclick="quitarFila('fuerzaSellos')">− Quitar última fila</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Punción</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-puncion"></table></div>
+    <div class="fila-acciones no-imprimir">
+      <button class="btn btn-secundario btn-sm" onclick="agregarFila('puncion')">+ Agregar fila</button>
+      <button class="btn btn-peligro btn-sm" onclick="quitarFila('puncion')">− Quitar última fila</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Auditoría de Atributos: Extrusión</h2>
+    <div class="tabla-wrap"><table class="atributos" id="tabla-atributos"></table></div>
+    <div class="leyenda-tipo"><strong>Tipo:</strong> <span>m = menor</span><span>M = Mayor</span><span>C = Crítico</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Durómetro
+      <span class="nota">*En caso de ser funda, validar la dureza de la bobina</span>
+    </h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-durometro"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Observaciones</h2>
+    <div id="obs-lista"></div>
+  </div>
+
+  <div class="card barra-guardar">
+    <span class="msg" id="msg-guardar">Los campos vacíos se guardan tal cual — completa lo que aplique.</span>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-secundario" onclick="limpiarFormulario()">Limpiar formulario</button>
+      <button class="btn btn-primario" onclick="guardarAuditoria()">Guardar auditoría</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ CONSULTA ============ -->
+<section id="view-consulta" class="view">
+  <div class="card">
+    <h2>Filtrar auditorías</h2>
+    <div class="filtros">
+      <div class="campo"><label>Línea</label><input type="text" id="f-linea" oninput="renderLista()" placeholder="Todas"></div>
+      <div class="campo"><label>Turno</label>
+        <select id="f-turno" onchange="renderLista()">
+          <option value="">Todos</option>
+          <option value="Matutino">Matutino</option>
+          <option value="Vespertino">Vespertino</option>
+          <option value="Nocturno">Nocturno</option>
+        </select>
+      </div>
+      <div class="campo"><label>Auditor</label><input type="text" id="f-auditor" oninput="renderLista()" placeholder="Todos"></div>
+      <div class="campo"><label>Desde</label><input type="date" id="f-desde" onchange="renderLista()"></div>
+      <div class="campo"><label>Hasta</label><input type="date" id="f-hasta" onchange="renderLista()"></div>
+      <div class="campo"><button class="btn btn-secundario" onclick="limpiarFiltros()">Limpiar filtros</button></div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;">
+    <div style="overflow-x:auto;">
+      <table class="lista" id="tabla-lista">
+        <thead><tr><th>Folio</th><th>Fecha</th><th>Línea</th><th>Turno</th><th>Auditor</th><th>Operador</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="vacio" id="lista-vacio" style="display:none;">No hay auditorías guardadas todavía.</div>
+  </div>
+</section>
+
+<!-- ============ GRAFICAS ============ -->
+<section id="view-graficas" class="view">
+  <div class="card">
+    <h2>Filtrar periodo</h2>
+    <div class="filtros">
+      <div class="campo"><label>Línea</label><input type="text" id="g-linea" oninput="renderGraficas()" placeholder="Todas"></div>
+      <div class="campo"><label>Desde</label><input type="date" id="g-desde" onchange="renderGraficas()"></div>
+      <div class="campo"><label>Hasta</label><input type="date" id="g-hasta" onchange="renderGraficas()"></div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="valor" id="kpi-total">0</div><div class="etiqueta">Auditorías registradas</div></div>
+    <div class="kpi"><div class="valor" id="kpi-cumplimiento">—</div><div class="etiqueta">% Cumplimiento de atributos</div></div>
+    <div class="kpi"><div class="valor" id="kpi-calibre">—</div><div class="etiqueta">Calibre promedio</div></div>
+    <div class="kpi"><div class="valor" id="kpi-fuerza">—</div><div class="etiqueta">Fuerza de sellos promedio</div></div>
+  </div>
+
+  <div class="graficas-grid">
+    <div class="card"><h2>Tendencia de calibre promedio</h2><div class="chart-box"><canvas id="chart-calibre"></canvas></div></div>
+    <div class="card"><h2>Tendencia de fuerza de sellos promedio</h2><div class="chart-box"><canvas id="chart-fuerza"></canvas></div></div>
+    <div class="card"><h2>Cumplimiento por atributo (Sí / No)</h2><div class="chart-box"><canvas id="chart-atributos"></canvas></div></div>
+    <div class="card"><h2>No conformidades por tipo</h2><div class="chart-box"><canvas id="chart-tipos"></canvas></div></div>
+  </div>
+
+  <div class="vacio" id="graficas-vacio" style="display:none;">Aún no hay datos suficientes para graficar.</div>
+</section>
+
+</main>
+
+<div class="footer-nota">Los documentos del Sistema de Gestión de Inocuidad y Calidad de ZUBEX INDUSTRIAL se controlan en red interna; cualquier copia impresa es solo referencia.</div>
+
+<!-- ============ MODAL VER / IMPRIMIR ============ -->
+<div class="overlay" id="overlay-ver">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-titulo">Auditoría</h3>
+      <div>
+        <button class="btn btn-acento btn-sm no-imprimir" onclick="imprimirAuditoria()">Imprimir / PDF</button>
+        <button class="modal-close" onclick="cerrarModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="zona-impresion"></div>
+
+<script>
+/* ================= CONFIG ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCPRWQTQDZIbXJVK3xrH4RHwaYMtO_qYvo",
+  authDomain: "calidad-ext.firebaseapp.com",
+  databaseURL: "https://calidad-ext-default-rtdb.firebaseio.com",
+  projectId: "calidad-ext",
+  storageBucket: "calidad-ext.firebasestorage.app",
+  messagingSenderId: "767811154383",
+  appId: "1:767811154383:web:10bad178f5cd330e4562ba"
+};
+firebase.initializeApp(firebaseConfig);
+const rtdb = firebase.database();
+const RUTA_RTDB = 'auditorias_extrusion';
+
+const MUESTRAS = ['M1','M2','M3','M4','M5','M6','M7'];
+const ATRIBUTOS = [
+  'Arrugas','Bloqueo','Costilla','Deslamine','Grumos y/o plastas','Mal olor',
+  'Picaduras y/o navajazos','Parches','Pigmentación y Tonalidad','Rasgaduras',
+  'Tensión','Marcas','Desestabilización','Deslisa o se abre rápido'
+];
+const FILAS_INICIALES = 5;
+
+let auditorias = []; // caché local de lo leído/guardado
+let modoLocal = false;
+
+let draft = crearDraftVacio();
+
+function crearDraftVacio(){
+  return {
+    auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    muestras: MUESTRAS.map(()=>({hora:'',id:'',producto:'',color:'',medida:''})),
+    anchoPlano: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    calibre: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    encogimiento: {apCara1:MUESTRAS.map(()=>''),apCara2:MUESTRAS.map(()=>''),smCara1:MUESTRAS.map(()=>''),smCara2:MUESTRAS.map(()=>'')},
+    fuerzaSellos: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    puncion: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    atributos: ATRIBUTOS.map(()=>MUESTRAS.map(()=>({cumple:'',tipo:''}))),
+    durometro: {izquierdo:MUESTRAS.map(()=>''),central:MUESTRAS.map(()=>''),derecho:MUESTRAS.map(()=>'')},
+    observaciones: MUESTRAS.map(()=>'')
+  };
+}
+
+/* ================= INIT ================= */
+(async function init(){
+  document.getElementById('c-fecha').value = draft.fecha;
+  renderTablaMuestras();
+  renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
+  renderTablaMatriz('tabla-calibre','calibre','Fila');
+  renderTablaEncogimiento();
+  renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
+  renderTablaMatriz('tabla-puncion','puncion','Fila');
+  renderTablaAtributos();
+  renderTablaDurometro();
+  renderObservaciones();
+  renderLista();
+  renderGraficas();
+  escucharAuditorias();
+})();
+
+function escucharAuditorias(){
+  rtdb.ref(RUTA_RTDB).on('value', (snapshot)=>{
+    const val = snapshot.val() || {};
+    auditorias = Object.values(val);
+    modoLocal = false;
+    renderLista();
+    renderGraficas();
+  }, (err)=>{
+    console.error('Firebase RTDB error:', err);
+    modoLocal = true;
+    try{ auditorias = JSON.parse(localStorage.getItem('zubex_auditorias_extrusion')||'[]'); }catch(e){ auditorias = []; }
+    mostrarMsg('No se pudo conectar a la base compartida. Trabajando en modo local en este navegador.', true);
+    renderLista();
+    renderGraficas();
+  });
+}
+
+/* ================= TABS ================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='consulta') renderLista();
+    if(btn.dataset.view==='graficas') renderGraficas();
+  });
+});
+
+/* ================= RENDER: MUESTRAS ================= */
+function renderTablaMuestras(){
+  const t = document.getElementById('tabla-muestras');
+  const filas = [
+    {key:'hora', label:'Hora', tipo:'time'},
+    {key:'id', label:'ID', tipo:'text'},
+    {key:'producto', label:'Producto', tipo:'text'},
+    {key:'color', label:'Color', tipo:'text'},
+    {key:'medida', label:'Medida', tipo:'text'},
+  ];
+  let html = '<thead><tr><th class="etiqueta">Muestra</th>' + MUESTRAS.map(m=>`<th>${m}</th>`).join('') + '</tr></thead><tbody>';
+  filas.forEach(f=>{
+    html += `<tr><td class="etiqueta">${f.label}</td>`;
+    MUESTRAS.forEach((m,i)=>{
+      html += `<td><input type="${f.tipo}" value="${escAttr(draft.muestras[i][f.key])}" oninput="draft.muestras[${i}]['${f.key}']=this.value"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+
+/* ================= RENDER: TABLAS MATRIZ DINAMICAS (ancho, calibre, fuerza, puncion) ================= */
+function renderTablaMatriz(tablaId, key, etiquetaFila){
+  const t = document.getElementById(tablaId);
+  let html = '<thead><tr><th class="etiqueta">'+etiquetaFila+'</th>' + MUESTRAS.map(m=>`<th>${m}</th>`).join('') + '</tr></thead><tbody>';
+  draft[key].forEach((fila,r)=>{
+    html += `<tr><td class="etiqueta">${etiquetaFila} ${r+1}</td>`;
+    fila.forEach((val,c)=>{
+      html += `<td><input type="text" value="${escAttr(val)}" oninput="draft['${key}'][${r}][${c}]=this.value"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+function agregarFila(key){
+  draft[key].push(MUESTRAS.map(()=>''));
+  const map = {anchoPlano:'tabla-ancho', calibre:'tabla-calibre', fuerzaSellos:'tabla-fuerza', puncion:'tabla-puncion'};
+  renderTablaMatriz(map[key], key, 'Fila');
+}
+function quitarFila(key){
+  if(draft[key].length<=1) return;
+  draft[key].pop();
+  const map = {anchoPlano:'tabla-ancho', calibre:'tabla-calibre', fuerzaSellos:'tabla-fuerza', puncion:'tabla-puncion'};
+  renderTablaMatriz(map[key], key, 'Fila');
+}
+
+/* ================= RENDER: ENCOGIMIENTO ================= */
+function renderTablaEncogimiento(){
+  const t = document.getElementById('tabla-encogimiento');
+  const filas = [{key:'apCara1',label:'AP Cara 1'},{key:'apCara2',label:'AP Cara 2'},{key:'smCara1',label:'SM Cara 1'},{key:'smCara2',label:'SM Cara 2'}];
+  let html = '<thead><tr><th class="etiqueta"></th>' + MUESTRAS.map(m=>`<th>${m}</th>`).join('') + '</tr></thead><tbody>';
+  filas.forEach(f=>{
+    html += `<tr><td class="etiqueta">${f.label}</td>`;
+    MUESTRAS.forEach((m,i)=>{
+      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" oninput="draft.encogimiento['${f.key}'][${i}]=this.value"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+
+/* ================= RENDER: ATRIBUTOS ================= */
+function renderTablaAtributos(){
+  const t = document.getElementById('tabla-atributos');
+  let head = '<thead><tr class="grupo"><th class="nombre" rowspan="2">Atributo</th>';
+  MUESTRAS.forEach(m=> head += `<th colspan="3">${m}</th>`);
+  head += '</tr><tr class="sub">';
+  MUESTRAS.forEach(()=> head += '<th>Sí</th><th>No</th><th>Tipo</th>');
+  head += '</tr></thead>';
+  let body = '<tbody>';
+  ATRIBUTOS.forEach((nom,a)=>{
+    body += `<tr><td class="nombre">${a+1}. ${nom}</td>`;
+    MUESTRAS.forEach((m,i)=>{
+      const celda = draft.atributos[a][i];
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='si'?'checked':''} onchange="draft.atributos[${a}][${i}].cumple='si'"></td>`;
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='no'?'checked':''} onchange="draft.atributos[${a}][${i}].cumple='no'"></td>`;
+      body += `<td><select onchange="draft.atributos[${a}][${i}].tipo=this.value">
+        <option value="" ${celda.tipo===''?'selected':''}></option>
+        <option value="m" ${celda.tipo==='m'?'selected':''}>m</option>
+        <option value="M" ${celda.tipo==='M'?'selected':''}>M</option>
+        <option value="C" ${celda.tipo==='C'?'selected':''}>C</option>
+      </select></td>`;
+    });
+    body += '</tr>';
+  });
+  body += '</tbody>';
+  t.innerHTML = head + body;
+}
+
+/* ================= RENDER: DUROMETRO ================= */
+function renderTablaDurometro(){
+  const t = document.getElementById('tabla-durometro');
+  const filas = [{key:'izquierdo',label:'Izquierdo'},{key:'central',label:'Central'},{key:'derecho',label:'Derecho'}];
+  let html = '<thead><tr><th class="etiqueta">Posición</th>' + MUESTRAS.map(m=>`<th>${m}</th>`).join('') + '</tr></thead><tbody>';
+  filas.forEach(f=>{
+    html += `<tr><td class="etiqueta">${f.label}</td>`;
+    MUESTRAS.forEach((m,i)=>{
+      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" oninput="draft.durometro['${f.key}'][${i}]=this.value"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+
+/* ================= RENDER: OBSERVACIONES ================= */
+function renderObservaciones(){
+  const cont = document.getElementById('obs-lista');
+  let html = '';
+  MUESTRAS.forEach((m,i)=>{
+    html += `<div class="campo" style="margin-bottom:8px;"><label>${m}</label><textarea rows="1" oninput="draft.observaciones[${i}]=this.value">${escHtml(draft.observaciones[i])}</textarea></div>`;
+  });
+  cont.innerHTML = html;
+}
+
+/* ================= GUARDAR ================= */
+async function guardarAuditoria(){
+  draft.auditor = document.getElementById('c-auditor').value;
+  draft.operador = document.getElementById('c-operador').value;
+  draft.linea = document.getElementById('c-linea').value;
+  draft.fecha = document.getElementById('c-fecha').value || new Date().toISOString().slice(0,10);
+  draft.turno = document.getElementById('c-turno').value;
+
+  if(!draft.auditor.trim()){
+    mostrarMsg('Indica el nombre del auditor antes de guardar.', true);
+    return;
+  }
+
+  const folio = 'AUD-EXT-' + Date.now();
+  const registro = Object.assign({}, JSON.parse(JSON.stringify(draft)), {
+    folio, creado: new Date().toISOString()
+  });
+
+  try{
+    if(modoLocal){
+      auditorias.unshift(registro);
+      localStorage.setItem('zubex_auditorias_extrusion', JSON.stringify(auditorias));
+    } else {
+      await rtdb.ref(RUTA_RTDB + '/' + folio).set(registro);
+      // no hace falta actualizar "auditorias" a mano: el listener .on('value') ya la refresca
+    }
+    mostrarMsg('Auditoría ' + folio + ' guardada correctamente.', false);
+    draft = crearDraftVacio();
+    document.getElementById('c-auditor').value='';
+    document.getElementById('c-operador').value='';
+    document.getElementById('c-linea').value='';
+    document.getElementById('c-fecha').value = draft.fecha;
+    document.getElementById('c-turno').value = 'Matutino';
+    renderTablaMuestras();
+    renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
+    renderTablaMatriz('tabla-calibre','calibre','Fila');
+    renderTablaEncogimiento();
+    renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
+    renderTablaMatriz('tabla-puncion','puncion','Fila');
+    renderTablaAtributos();
+    renderTablaDurometro();
+    renderObservaciones();
+    renderLista();
+    renderGraficas();
+  }catch(e){
+    console.error(e);
+    mostrarMsg('No se pudo guardar. Intenta de nuevo.', true);
+  }
+}
+function limpiarFormulario(){
+  if(!confirm('¿Limpiar todos los campos capturados?')) return;
+  draft = crearDraftVacio();
+  document.getElementById('c-auditor').value='';
+  document.getElementById('c-operador').value='';
+  document.getElementById('c-linea').value='';
+  document.getElementById('c-fecha').value = draft.fecha;
+  document.getElementById('c-turno').value = 'Matutino';
+  renderTablaMuestras();
+  renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
+  renderTablaMatriz('tabla-calibre','calibre','Fila');
+  renderTablaEncogimiento();
+  renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
+  renderTablaMatriz('tabla-puncion','puncion','Fila');
+  renderTablaAtributos();
+  renderTablaDurometro();
+  renderObservaciones();
+  mostrarMsg('Formulario limpio.', false);
+}
+function mostrarMsg(txt, esError){
+  const el = document.getElementById('msg-guardar');
+  el.textContent = txt;
+  el.className = 'msg ' + (esError?'err':'ok');
+}
+
+/* ================= CONSULTA ================= */
+function limpiarFiltros(){
+  document.getElementById('f-linea').value='';
+  document.getElementById('f-turno').value='';
+  document.getElementById('f-auditor').value='';
+  document.getElementById('f-desde').value='';
+  document.getElementById('f-hasta').value='';
+  renderLista();
+}
+function filtrarAuditorias({linea, turno, auditor, desde, hasta}){
+  return auditorias.filter(a=>{
+    if(linea && !(a.linea||'').toLowerCase().includes(linea.toLowerCase())) return false;
+    if(turno && a.turno!==turno) return false;
+    if(auditor && !(a.auditor||'').toLowerCase().includes(auditor.toLowerCase())) return false;
+    if(desde && a.fecha < desde) return false;
+    if(hasta && a.fecha > hasta) return false;
+    return true;
+  });
+}
+function renderLista(){
+  const linea = document.getElementById('f-linea').value.trim();
+  const turno = document.getElementById('f-turno').value;
+  const auditor = document.getElementById('f-auditor').value.trim();
+  const desde = document.getElementById('f-desde').value;
+  const hasta = document.getElementById('f-hasta').value;
+  const filtradas = filtrarAuditorias({linea,turno,auditor,desde,hasta})
+    .slice().sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.creado||'').localeCompare(a.creado||''));
+
+  const tbody = document.querySelector('#tabla-lista tbody');
+  const vacio = document.getElementById('lista-vacio');
+  if(filtradas.length===0){
+    tbody.innerHTML='';
+    vacio.style.display='block';
+    return;
+  }
+  vacio.style.display='none';
+  tbody.innerHTML = filtradas.map(a=>`
+    <tr>
+      <td>${a.folio}</td>
+      <td>${formatoFecha(a.fecha)}</td>
+      <td>${escHtml(a.linea||'—')}</td>
+      <td><span class="badge-turno">${a.turno||'—'}</span></td>
+      <td>${escHtml(a.auditor||'—')}</td>
+      <td>${escHtml(a.operador||'—')}</td>
+      <td><button class="btn btn-secundario btn-sm" onclick="verAuditoria('${a.folio}')">Ver</button></td>
+    </tr>
+  `).join('');
+}
+function formatoFecha(f){
+  if(!f) return '—';
+  const [y,m,d] = f.split('-');
+  return d && m && y ? `${d}/${m}/${y}` : f;
+}
+
+/* ================= VER / IMPRIMIR ================= */
+let auditoriaActual = null;
+function verAuditoria(folio){
+  auditoriaActual = auditorias.find(a=>a.folio===folio);
+  if(!auditoriaActual) return;
+  document.getElementById('modal-titulo').textContent = 'Auditoría ' + folio + ' — ' + formatoFecha(auditoriaActual.fecha);
+  document.getElementById('modal-body').innerHTML = renderVistaAuditoria(auditoriaActual);
+  document.getElementById('overlay-ver').classList.add('active');
+}
+function cerrarModal(){
+  document.getElementById('overlay-ver').classList.remove('active');
+}
+function renderVistaAuditoria(a){
+  const fila = (vals)=> vals.map(v=>`<td>${v===''||v==null?'—':escHtml(String(v))}</td>`).join('');
+  let html = `
+  <div class="card"><h2>Datos generales</h2>
+    <div class="grid-cabecera">
+      <div><strong>Auditor:</strong> ${escHtml(a.auditor||'—')}</div>
+      <div><strong>Operador:</strong> ${escHtml(a.operador||'—')}</div>
+      <div><strong>Línea:</strong> ${escHtml(a.linea||'—')}</div>
+      <div><strong>Fecha:</strong> ${formatoFecha(a.fecha)}</div>
+      <div><strong>Turno:</strong> ${a.turno||'—'}</div>
+    </div>
+  </div>`;
+
+  html += `<div class="card"><h2>Datos por muestra</h2><div class="tabla-wrap"><table class="matriz"><thead><tr><th class="etiqueta">Muestra</th>${MUESTRAS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
+  ['hora','id','producto','color','medida'].forEach((k,idx)=>{
+    const labels=['Hora','ID','Producto','Color','Medida'];
+    html += `<tr><td class="etiqueta">${labels[idx]}</td>${fila(a.muestras.map(m=>m[k]))}</tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  const tablaDinamica = (titulo, datos)=>{
+    let h = `<div class="card"><h2>${titulo}</h2><div class="tabla-wrap"><table class="matriz"><thead><tr><th class="etiqueta">Fila</th>${MUESTRAS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
+    datos.forEach((f,i)=> h += `<tr><td class="etiqueta">Fila ${i+1}</td>${fila(f)}</tr>`);
+    h += `</tbody></table></div></div>`;
+    return h;
+  };
+  html += tablaDinamica('Medición Ancho Plano', a.anchoPlano||[]);
+  html += tablaDinamica('Medición de Calibre', a.calibre||[]);
+
+  html += `<div class="card"><h2>Encogimiento</h2><div class="tabla-wrap"><table class="matriz"><thead><tr><th class="etiqueta"></th>${MUESTRAS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>
+    <tr><td class="etiqueta">AP Cara 1</td>${fila(a.encogimiento.apCara1)}</tr>
+    <tr><td class="etiqueta">AP Cara 2</td>${fila(a.encogimiento.apCara2)}</tr>
+    <tr><td class="etiqueta">SM Cara 1</td>${fila(a.encogimiento.smCara1)}</tr>
+    <tr><td class="etiqueta">SM Cara 2</td>${fila(a.encogimiento.smCara2)}</tr>
+  </tbody></table></div></div>`;
+
+  html += tablaDinamica('Fuerza de sellos', a.fuerzaSellos||[]);
+  html += tablaDinamica('Punción', a.puncion||[]);
+
+  html += `<div class="card"><h2>Auditoría de Atributos: Extrusión</h2><div class="tabla-wrap"><table class="atributos"><thead><tr class="grupo"><th class="nombre" rowspan="2">Atributo</th>${MUESTRAS.map(m=>`<th colspan="3">${m}</th>`).join('')}</tr><tr class="sub">${MUESTRAS.map(()=>'<th>Sí</th><th>No</th><th>Tipo</th>').join('')}</tr></thead><tbody>`;
+  ATRIBUTOS.forEach((nom,ai)=>{
+    html += `<tr><td class="nombre">${ai+1}. ${nom}</td>`;
+    a.atributos[ai].forEach(c=>{
+      html += `<td>${c.cumple==='si'?'✔':''}</td><td>${c.cumple==='no'?'✔':''}</td><td>${c.tipo||''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += `</tbody></table></div><div class="leyenda-tipo"><span>m = menor</span><span>M = Mayor</span><span>C = Crítico</span></div></div>`;
+
+  html += `<div class="card"><h2>Durómetro</h2><div class="tabla-wrap"><table class="matriz"><thead><tr><th class="etiqueta">Posición</th>${MUESTRAS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>
+    <tr><td class="etiqueta">Izquierdo</td>${fila(a.durometro.izquierdo)}</tr>
+    <tr><td class="etiqueta">Central</td>${fila(a.durometro.central)}</tr>
+    <tr><td class="etiqueta">Derecho</td>${fila(a.durometro.derecho)}</tr>
+  </tbody></table></div></div>`;
+
+  html += `<div class="card"><h2>Observaciones</h2>`;
+  MUESTRAS.forEach((m,i)=>{
+    html += `<div style="margin-bottom:6px;"><strong>${m}:</strong> ${escHtml(a.observaciones[i]||'—')}</div>`;
+  });
+  html += `</div>`;
+
+  return html;
+}
+
+function imprimirAuditoria(){
+  if(!auditoriaActual) return;
+  const zona = document.getElementById('zona-impresion');
+  zona.innerHTML = `
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0D18A8;padding-bottom:10px;margin-bottom:16px;">
+        <div style="font-weight:700;font-size:22px;color:#0D18A8;">zubex</div>
+        <div style="text-align:right;font-size:11px;color:#333;">
+          Sistema de Gestión de Inocuidad y Calidad<br>
+          Formato: ASC-F-01 · Revisión 11<br>
+          Folio: ${auditoriaActual.folio}
+        </div>
+      </div>
+      <h2 style="color:#0D18A8;">Auditoría de Atributos y Variables de Extrusión</h2>
+      ${renderVistaAuditoria(auditoriaActual)}
+      <p style="font-size:10px;color:#888;margin-top:20px;">NOTA: Los documentos del Sistema de Gestión de Inocuidad y Calidad de ZUBEX INDUSTRIAL se controlan en RED INTERNA; cualquier copia impresa es SOLO REFERENCIA.</p>
+    </div>`;
+  window.print();
+}
+
+/* ================= GRAFICAS ================= */
+let charts = {};
+function promedio(arr){
+  const nums = arr.filter(v=>v!=='' && v!=null && !isNaN(parseFloat(v))).map(v=>parseFloat(v));
+  if(nums.length===0) return null;
+  return nums.reduce((a,b)=>a+b,0)/nums.length;
+}
+function renderGraficas(){
+  const linea = document.getElementById('g-linea').value.trim();
+  const desde = document.getElementById('g-desde').value;
+  const hasta = document.getElementById('g-hasta').value;
+  const datos = filtrarAuditorias({linea, turno:'', auditor:'', desde, hasta})
+    .slice().sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+
+  document.getElementById('kpi-total').textContent = datos.length;
+  document.getElementById('graficas-vacio').style.display = datos.length? 'none':'block';
+
+  // KPI cumplimiento global de atributos
+  let siCount=0, noCount=0;
+  const tipoCount = {m:0,M:0,C:0};
+  datos.forEach(a=>{
+    (a.atributos||[]).forEach(fila=>{
+      fila.forEach(c=>{
+        if(c.cumple==='si') siCount++;
+        if(c.cumple==='no'){ noCount++; if(c.tipo && tipoCount[c.tipo]!==undefined) tipoCount[c.tipo]++; }
+      });
+    });
+  });
+  const totalEval = siCount+noCount;
+  document.getElementById('kpi-cumplimiento').textContent = totalEval? Math.round(siCount/totalEval*100)+'%' : '—';
+
+  // KPI calibre y fuerza promedio global
+  const calibresGlobal = [];
+  const fuerzasGlobal = [];
+  const puntosFecha = {}; // fecha -> {calibres:[], fuerzas:[]}
+  datos.forEach(a=>{
+    const cal = (a.calibre||[]).flat();
+    const fue = (a.fuerzaSellos||[]).flat();
+    calibresGlobal.push(...cal);
+    fuerzasGlobal.push(...fue);
+    if(!puntosFecha[a.fecha]) puntosFecha[a.fecha] = {calibres:[], fuerzas:[]};
+    puntosFecha[a.fecha].calibres.push(...cal);
+    puntosFecha[a.fecha].fuerzas.push(...fue);
+  });
+  const promCalibre = promedio(calibresGlobal);
+  const promFuerza = promedio(fuerzasGlobal);
+  document.getElementById('kpi-calibre').textContent = promCalibre!==null? promCalibre.toFixed(2) : '—';
+  document.getElementById('kpi-fuerza').textContent = promFuerza!==null? promFuerza.toFixed(2) : '—';
+
+  const fechas = Object.keys(puntosFecha).sort();
+  const serieCalibre = fechas.map(f=>promedio(puntosFecha[f].calibres));
+  const serieFuerza = fechas.map(f=>promedio(puntosFecha[f].fuerzas));
+
+  dibujarLinea('chart-calibre', fechas.map(formatoFecha), serieCalibre, 'Calibre promedio', '#0D18A8');
+  dibujarLinea('chart-fuerza', fechas.map(formatoFecha), serieFuerza, 'Fuerza de sellos promedio', '#227EF6');
+
+  // atributos: conteo Si/No por atributo
+  const siPorAtributo = ATRIBUTOS.map(()=>0);
+  const noPorAtributo = ATRIBUTOS.map(()=>0);
+  datos.forEach(a=>{
+    (a.atributos||[]).forEach((fila,ai)=>{
+      fila.forEach(c=>{
+        if(c.cumple==='si') siPorAtributo[ai]++;
+        if(c.cumple==='no') noPorAtributo[ai]++;
+      });
+    });
+  });
+  dibujarBarrasAgrupadas('chart-atributos', ATRIBUTOS, [
+    {label:'Sí', data:siPorAtributo, color:'#166534'},
+    {label:'No', data:noPorAtributo, color:'#991b1b'}
+  ]);
+
+  dibujarBarrasSimples('chart-tipos', ['Menor (m)','Mayor (M)','Crítico (C)'], [tipoCount.m,tipoCount.M,tipoCount.C], ['#227EF6','#0D18A8','#991b1b']);
+}
+
+function dibujarLinea(id, labels, data, label, color){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'line',
+    data:{labels, datasets:[{label, data, borderColor:color, backgroundColor:color+'22', tension:0.25, fill:true, pointRadius:3}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false}}}
+  });
+}
+function dibujarBarrasAgrupadas(id, labels, series){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'bar',
+    data:{labels, datasets: series.map(s=>({label:s.label, data:s.data, backgroundColor:s.color}))},
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{font:{size:9}}}, y:{beginAtZero:true}}}
+  });
+}
+function dibujarBarrasSimples(id, labels, data, colors){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'bar',
+    data:{labels, datasets:[{data, backgroundColor:colors}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+  });
+}
+
+/* ================= UTIL ================= */
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escAttr(s){ return escHtml(s); }
+</script>
+</body>
+</html>
