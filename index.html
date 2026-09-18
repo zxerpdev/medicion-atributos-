@@ -144,6 +144,20 @@ table.atributos select{border:none;font-size:10.5px;padding:2px;width:44px;backg
 .leyenda-tipo{font-size:11px;color:#64748b;margin-top:8px;}
 .leyenda-tipo span{margin-right:14px;}
 
+.segmented{display:inline-flex;flex-wrap:wrap;border:1px solid var(--borde);border-radius:10px;overflow:hidden;}
+.seg-btn{background:#fff;border:none;border-right:1px solid var(--borde);padding:9px 16px;font-family:inherit;font-weight:600;font-size:13px;color:#334155;cursor:pointer;}
+.seg-btn:last-child{border-right:none;}
+.seg-btn:hover{background:#f1f5f9;}
+.seg-btn.activo{background:var(--azul);color:#fff;}
+
+.pill{display:inline-block;padding:5px 11px;border-radius:20px;font-size:11.5px;font-weight:600;margin:0 6px 6px 0;}
+.pill-ok{background:#dcfce7;color:var(--verde);}
+.pill-actual{background:#dbeafe;color:var(--azul);}
+.pill-pendiente{background:#f1f5f9;color:#94a3b8;}
+
+.celda-bloqueada{background:#f1f5f9 !important;color:#94a3b8 !important;cursor:not-allowed;}
+input.celda-bloqueada,select.celda-bloqueada,textarea.celda-bloqueada{opacity:0.75;}
+
 .btn{
   border:none;border-radius:8px;padding:9px 16px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;
   transition:filter .15s;
@@ -229,20 +243,18 @@ table.lista tr:hover td{background:#f8fafc;}
 <section id="view-captura" class="view active">
 
   <div class="card">
-    <h2>Datos generales</h2>
+    <h2>Sesión de captura</h2>
     <div class="grid-cabecera">
-      <div class="campo"><label>Auditor</label><input type="text" id="c-auditor" placeholder="Nombre del auditor"></div>
-      <div class="campo"><label>Operador</label><input type="text" id="c-operador" placeholder="Nombre del operador"></div>
-      <div class="campo"><label>Línea</label>
-        <select id="c-linea">
-          <option value="">Selecciona…</option>
-          <option value="EXT1">EXT1</option>
-          <option value="EXT2">EXT2</option>
-          <option value="EXT3">EXT3</option>
-          <option value="EXT4">EXT4</option>
-          <option value="EXT5">EXT5</option>
-          <option value="EXT6">EXT6</option>
-        </select>
+      <div class="campo" style="grid-column:1/-1;">
+        <label>Línea</label>
+        <div class="segmented" id="selector-linea">
+          <button type="button" class="seg-btn" data-linea="EXT001" onclick="seleccionarLinea('EXT001')">EXT001</button>
+          <button type="button" class="seg-btn" data-linea="EXT002" onclick="seleccionarLinea('EXT002')">EXT002</button>
+          <button type="button" class="seg-btn" data-linea="EXT003" onclick="seleccionarLinea('EXT003')">EXT003</button>
+          <button type="button" class="seg-btn" data-linea="EXT004" onclick="seleccionarLinea('EXT004')">EXT004</button>
+          <button type="button" class="seg-btn" data-linea="EXT005" onclick="seleccionarLinea('EXT005')">EXT005</button>
+          <button type="button" class="seg-btn" data-linea="EXT006" onclick="seleccionarLinea('EXT006')">EXT006</button>
+        </div>
       </div>
       <div class="campo"><label>Fecha</label><input type="date" id="c-fecha"></div>
       <div class="campo"><label>Turno</label>
@@ -252,7 +264,15 @@ table.lista tr:hover td{background:#f8fafc;}
           <option value="Nocturno">Nocturno</option>
         </select>
       </div>
+      <div class="campo"><label>Auditor</label><input type="text" id="c-auditor" placeholder="Nombre del auditor"></div>
+      <div class="campo"><label>Operador</label><input type="text" id="c-operador" placeholder="Nombre del operador"></div>
     </div>
+    <div class="fila-acciones" style="margin-top:14px;">
+      <button class="btn btn-primario" onclick="iniciarOContinuar()">Iniciar / continuar captura</button>
+      <button class="btn btn-secundario" onclick="nuevaAuditoria()">Nueva auditoría (otra línea/turno)</button>
+    </div>
+    <div id="progreso-muestras" style="margin-top:14px;"></div>
+    <div class="msg" id="msg-sesion" style="margin-top:8px;">Selecciona línea, fecha y turno, y presiona "Iniciar / continuar captura".</div>
   </div>
 
   <div class="card">
@@ -324,8 +344,7 @@ table.lista tr:hover td{background:#f8fafc;}
   <div class="card barra-guardar">
     <span class="msg" id="msg-guardar">Los campos vacíos se guardan tal cual — completa lo que aplique.</span>
     <div style="display:flex; gap:10px;">
-      <button class="btn btn-secundario" onclick="limpiarFormulario()">Limpiar formulario</button>
-      <button class="btn btn-primario" onclick="guardarAuditoria()">Guardar auditoría</button>
+      <button class="btn btn-primario" onclick="guardarAuditoria()">Guardar muestra actual</button>
     </div>
   </div>
 
@@ -339,12 +358,12 @@ table.lista tr:hover td{background:#f8fafc;}
       <div class="campo"><label>Línea</label>
         <select id="f-linea" onchange="renderLista()">
           <option value="">Todas</option>
-          <option value="EXT1">EXT1</option>
-          <option value="EXT2">EXT2</option>
-          <option value="EXT3">EXT3</option>
-          <option value="EXT4">EXT4</option>
-          <option value="EXT5">EXT5</option>
-          <option value="EXT6">EXT6</option>
+          <option value="EXT001">EXT001</option>
+          <option value="EXT002">EXT002</option>
+          <option value="EXT003">EXT003</option>
+          <option value="EXT004">EXT004</option>
+          <option value="EXT005">EXT005</option>
+          <option value="EXT006">EXT006</option>
         </select>
       </div>
       <div class="campo"><label>Turno</label>
@@ -380,12 +399,12 @@ table.lista tr:hover td{background:#f8fafc;}
       <div class="campo"><label>Línea</label>
         <select id="g-linea" onchange="renderGraficas()">
           <option value="">Todas</option>
-          <option value="EXT1">EXT1</option>
-          <option value="EXT2">EXT2</option>
-          <option value="EXT3">EXT3</option>
-          <option value="EXT4">EXT4</option>
-          <option value="EXT5">EXT5</option>
-          <option value="EXT6">EXT6</option>
+          <option value="EXT001">EXT001</option>
+          <option value="EXT002">EXT002</option>
+          <option value="EXT003">EXT003</option>
+          <option value="EXT004">EXT004</option>
+          <option value="EXT005">EXT005</option>
+          <option value="EXT006">EXT006</option>
         </select>
       </div>
       <div class="campo"><label>Desde</label><input type="date" id="g-desde" onchange="renderGraficas()"></div>
@@ -456,12 +475,15 @@ const FILAS_INICIALES = 5;
 let auditorias = []; // caché local de lo leído/guardado
 let modoLocal = false;
 let charts = {};
+let sesionIniciada = false;
+let lineaSeleccionada = '';
 
 let draft = crearDraftVacio();
 
 function crearDraftVacio(){
   return {
-    auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    folio:'', auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    capturado: MUESTRAS.map(()=>false),
     muestras: MUESTRAS.map(()=>({hora:'',id:'',producto:'',color:'',medida:''})),
     anchoPlano: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
     calibre: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
@@ -477,6 +499,99 @@ function crearDraftVacio(){
 /* ================= INIT ================= */
 (async function init(){
   document.getElementById('c-fecha').value = draft.fecha;
+  refrescarTodo();
+  renderLista();
+  renderGraficas();
+  escucharAuditorias();
+})();
+
+/* ---- Selección de línea (botones segmentados) ---- */
+function seleccionarLinea(valor){
+  lineaSeleccionada = valor;
+  document.querySelectorAll('#selector-linea .seg-btn').forEach(b=>{
+    b.classList.toggle('activo', b.dataset.linea === valor);
+  });
+}
+
+/* ---- Folio determinístico: línea + fecha + turno ---- */
+function calcularFolio(linea, fecha, turno){
+  return linea + '_' + fecha + '_' + turno;
+}
+
+/* ---- Índice de la primera muestra aún no capturada (-1 si ya están las 7) ---- */
+function indiceActual(){
+  if(!draft.capturado) return 0;
+  return draft.capturado.indexOf(false);
+}
+
+/* ---- Inicia una sesión nueva o retoma una existente para línea+fecha+turno ---- */
+async function iniciarOContinuar(){
+  const fecha = document.getElementById('c-fecha').value || new Date().toISOString().slice(0,10);
+  const turno = document.getElementById('c-turno').value;
+  if(!lineaSeleccionada){
+    mostrarMsgSesion('Selecciona una línea antes de continuar.', true);
+    return;
+  }
+  const folio = calcularFolio(lineaSeleccionada, fecha, turno);
+  let existente = auditorias.find(a=>a.folio===folio);
+  if(!existente && !modoLocal){
+    try{
+      const snap = await rtdb.ref(RUTA_RTDB + '/' + folio).once('value');
+      existente = snap.val();
+    }catch(e){ existente = null; }
+  }
+  if(existente){
+    draft = JSON.parse(JSON.stringify(existente));
+    if(!draft.capturado) draft.capturado = MUESTRAS.map(()=>false);
+  } else {
+    draft = crearDraftVacio();
+    draft.folio = folio;
+    draft.linea = lineaSeleccionada;
+    draft.fecha = fecha;
+    draft.turno = turno;
+  }
+  const auditorInput = document.getElementById('c-auditor').value.trim();
+  const operadorInput = document.getElementById('c-operador').value.trim();
+  if(auditorInput) draft.auditor = auditorInput;
+  if(operadorInput) draft.operador = operadorInput;
+  document.getElementById('c-auditor').value = draft.auditor || '';
+  document.getElementById('c-operador').value = draft.operador || '';
+
+  sesionIniciada = true;
+  refrescarTodo();
+  const idx = indiceActual();
+  if(idx === -1){
+    mostrarMsgSesion('Las 7 muestras de este turno ya fueron capturadas. Puedes revisarlas en la pestaña Consultar.', false);
+  } else if(existente){
+    mostrarMsgSesion('Continuando auditoría existente — captura ahora ' + MUESTRAS[idx] + '. Las muestras anteriores quedan bloqueadas como referencia.', false);
+  } else {
+    mostrarMsgSesion('Auditoría nueva — captura ' + MUESTRAS[idx] + '.', false);
+  }
+}
+
+/* ---- Descarta la sesión actual para empezar otra línea/turno/fecha ---- */
+function nuevaAuditoria(){
+  if(sesionIniciada && !confirm('¿Iniciar otra auditoría? Se descartará lo que no hayas guardado de la actual.')) return;
+  sesionIniciada = false;
+  lineaSeleccionada = '';
+  document.querySelectorAll('#selector-linea .seg-btn').forEach(b=>b.classList.remove('activo'));
+  draft = crearDraftVacio();
+  document.getElementById('c-auditor').value='';
+  document.getElementById('c-operador').value='';
+  document.getElementById('c-fecha').value = draft.fecha;
+  document.getElementById('c-turno').value = 'Matutino';
+  refrescarTodo();
+  mostrarMsgSesion('Selecciona línea, fecha y turno, y presiona "Iniciar / continuar captura".', false);
+}
+
+function mostrarMsgSesion(txt, esError){
+  const el = document.getElementById('msg-sesion');
+  el.textContent = txt;
+  el.className = 'msg ' + (esError?'err':'ok');
+}
+
+/* ---- Vuelve a pintar todas las tablas de captura + el progreso de muestras ---- */
+function refrescarTodo(){
   renderTablaMuestras();
   renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
   renderTablaMatriz('tabla-calibre','calibre','Fila');
@@ -486,10 +601,25 @@ function crearDraftVacio(){
   renderTablaAtributos();
   renderTablaDurometro();
   renderObservaciones();
-  renderLista();
-  renderGraficas();
-  escucharAuditorias();
-})();
+  renderProgresoMuestras();
+}
+
+function renderProgresoMuestras(){
+  const cont = document.getElementById('progreso-muestras');
+  const idx = indiceActual();
+  cont.innerHTML = MUESTRAS.map((m,i)=>{
+    let estado, clase;
+    if(draft.capturado && draft.capturado[i]){ estado='✔ capturada'; clase='pill-ok'; }
+    else if(sesionIniciada && i===idx){ estado='● en captura'; clase='pill-actual'; }
+    else { estado='pendiente'; clase='pill-pendiente'; }
+    return `<span class="pill ${clase}">${m}: ${estado}</span>`;
+  }).join('');
+}
+
+/* ---- ¿La columna de esta muestra debe mostrarse bloqueada (solo lectura)? ---- */
+function columnaBloqueada(i){
+  return !sesionIniciada || i !== indiceActual();
+}
 
 function escucharAuditorias(){
   rtdb.ref(RUTA_RTDB).on('value', (snapshot)=>{
@@ -540,7 +670,8 @@ function renderTablaMuestras(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      html += `<td><input type="${f.tipo}" value="${escAttr(draft.muestras[i][f.key])}" oninput="draft.muestras[${i}]['${f.key}']=this.value"></td>`;
+      const bloq = columnaBloqueada(i);
+      html += `<td><input type="${f.tipo}" value="${escAttr(draft.muestras[i][f.key])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.muestras[${i}]['${f.key}']=this.value"></td>`;
     });
     html += '</tr>';
   });
@@ -555,7 +686,8 @@ function renderTablaMatriz(tablaId, key, etiquetaFila){
   draft[key].forEach((fila,r)=>{
     html += `<tr><td class="etiqueta">${etiquetaFila} ${r+1}</td>`;
     fila.forEach((val,c)=>{
-      html += `<td><input type="text" value="${escAttr(val)}" oninput="draft['${key}'][${r}][${c}]=this.value"></td>`;
+      const bloq = columnaBloqueada(c);
+      html += `<td><input type="text" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value"></td>`;
     });
     html += '</tr>';
   });
@@ -582,7 +714,8 @@ function renderTablaEncogimiento(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" oninput="draft.encogimiento['${f.key}'][${i}]=this.value"></td>`;
+      const bloq = columnaBloqueada(i);
+      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value"></td>`;
     });
     html += '</tr>';
   });
@@ -603,9 +736,11 @@ function renderTablaAtributos(){
     body += `<tr><td class="nombre">${a+1}. ${nom}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const celda = draft.atributos[a][i];
-      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='si'?'checked':''} onchange="draft.atributos[${a}][${i}].cumple='si'"></td>`;
-      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='no'?'checked':''} onchange="draft.atributos[${a}][${i}].cumple='no'"></td>`;
-      body += `<td><select onchange="draft.atributos[${a}][${i}].tipo=this.value">
+      const bloq = columnaBloqueada(i);
+      const dis = bloq?'disabled':'';
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='si'?'checked':''} ${dis} onchange="draft.atributos[${a}][${i}].cumple='si'"></td>`;
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='no'?'checked':''} ${dis} onchange="draft.atributos[${a}][${i}].cumple='no'"></td>`;
+      body += `<td><select ${dis} ${bloq?'class="celda-bloqueada"':''} onchange="draft.atributos[${a}][${i}].tipo=this.value">
         <option value="" ${celda.tipo===''?'selected':''}></option>
         <option value="m" ${celda.tipo==='m'?'selected':''}>m</option>
         <option value="M" ${celda.tipo==='M'?'selected':''}>M</option>
@@ -626,7 +761,8 @@ function renderTablaDurometro(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" oninput="draft.durometro['${f.key}'][${i}]=this.value"></td>`;
+      const bloq = columnaBloqueada(i);
+      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value"></td>`;
     });
     html += '</tr>';
   });
@@ -639,94 +775,66 @@ function renderObservaciones(){
   const cont = document.getElementById('obs-lista');
   let html = '';
   MUESTRAS.forEach((m,i)=>{
-    html += `<div class="campo" style="margin-bottom:8px;"><label>${m}</label><textarea rows="1" oninput="draft.observaciones[${i}]=this.value">${escHtml(draft.observaciones[i])}</textarea></div>`;
+    const bloq = columnaBloqueada(i);
+    html += `<div class="campo" style="margin-bottom:8px;"><label>${m}</label><textarea rows="1" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.observaciones[${i}]=this.value">${escHtml(draft.observaciones[i])}</textarea></div>`;
   });
   cont.innerHTML = html;
 }
 
 /* ================= GUARDAR ================= */
 async function guardarAuditoria(){
+  if(!sesionIniciada){
+    mostrarMsg('Primero selecciona línea, fecha y turno, y presiona "Iniciar / continuar captura".', true);
+    return;
+  }
+  const idx = indiceActual();
+  if(idx === -1){
+    mostrarMsg('Las 7 muestras de este turno ya están capturadas. No hay nada pendiente por guardar.', true);
+    return;
+  }
+
   draft.auditor = document.getElementById('c-auditor').value;
   draft.operador = document.getElementById('c-operador').value;
-  draft.linea = document.getElementById('c-linea').value;
-  draft.fecha = document.getElementById('c-fecha').value || new Date().toISOString().slice(0,10);
-  draft.turno = document.getElementById('c-turno').value;
 
   if(!draft.auditor.trim()){
     mostrarMsg('Indica el nombre del auditor antes de guardar.', true);
     return;
   }
 
-  const folio = 'AUD-EXT-' + Date.now();
-  const registro = Object.assign({}, JSON.parse(JSON.stringify(draft)), {
-    folio, creado: new Date().toISOString()
-  });
+  draft.capturado[idx] = true;
+  const ahora = new Date().toISOString();
+  const registro = JSON.parse(JSON.stringify(draft));
+  registro.actualizado = ahora;
+  if(!registro.creado) registro.creado = ahora;
 
   try{
-    await rtdb.ref(RUTA_RTDB + '/' + folio).set(registro);
+    await rtdb.ref(RUTA_RTDB + '/' + draft.folio).set(registro);
     modoLocal = false;
-    // no hace falta actualizar "auditorias" a mano: el listener .on('value') ya la refresca
-    mostrarMsg('Auditoría ' + folio + ' guardada correctamente en la base compartida.', false);
-    draft = crearDraftVacio();
-    document.getElementById('c-auditor').value='';
-    document.getElementById('c-operador').value='';
-    document.getElementById('c-linea').value='';
-    document.getElementById('c-fecha').value = draft.fecha;
-    document.getElementById('c-turno').value = 'Matutino';
-    renderTablaMuestras();
-    renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
-    renderTablaMatriz('tabla-calibre','calibre','Fila');
-    renderTablaEncogimiento();
-    renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
-    renderTablaMatriz('tabla-puncion','puncion','Fila');
-    renderTablaAtributos();
-    renderTablaDurometro();
-    renderObservaciones();
+    const siguiente = indiceActual();
+    if(siguiente === -1){
+      mostrarMsg(MUESTRAS[idx] + ' guardada. ¡Las 7 muestras de este turno quedaron completas!', false);
+    } else {
+      mostrarMsg(MUESTRAS[idx] + ' guardada correctamente. Continúa con ' + MUESTRAS[siguiente] + '.', false);
+    }
+    refrescarTodo();
     renderLista();
     renderGraficas();
   }catch(e){
     console.error(e);
+    draft.capturado[idx] = false; // revertir, no se pudo confirmar el guardado
     modoLocal = true;
-    auditorias.unshift(registro);
-    localStorage.setItem('zubex_auditorias_extrusion', JSON.stringify(auditorias));
-    mostrarMsg('No se pudo guardar en la base compartida (revisa conexión/reglas de Firebase). Se guardó solo en este navegador.', true);
-    draft = crearDraftVacio();
-    document.getElementById('c-auditor').value='';
-    document.getElementById('c-operador').value='';
-    document.getElementById('c-linea').value='';
-    document.getElementById('c-fecha').value = draft.fecha;
-    document.getElementById('c-turno').value = 'Matutino';
-    renderTablaMuestras();
-    renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
-    renderTablaMatriz('tabla-calibre','calibre','Fila');
-    renderTablaEncogimiento();
-    renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
-    renderTablaMatriz('tabla-puncion','puncion','Fila');
-    renderTablaAtributos();
-    renderTablaDurometro();
-    renderObservaciones();
+    let locales = [];
+    try{ locales = JSON.parse(localStorage.getItem('zubex_auditorias_extrusion')||'[]'); }catch(err){ locales = []; }
+    const pos = locales.findIndex(a=>a.folio===registro.folio);
+    registro.capturado = draft.capturado.slice(0,idx).concat([true]).concat(draft.capturado.slice(idx+1)); // conserva el intento local
+    if(pos>=0) locales[pos]=registro; else locales.unshift(registro);
+    localStorage.setItem('zubex_auditorias_extrusion', JSON.stringify(locales));
+    draft.capturado[idx] = true;
+    mostrarMsg('No se pudo confirmar el guardado en la base compartida (revisa conexión/reglas de Firebase). Se guardó localmente en este navegador.', true);
+    refrescarTodo();
     renderLista();
     renderGraficas();
   }
-}
-function limpiarFormulario(){
-  if(!confirm('¿Limpiar todos los campos capturados?')) return;
-  draft = crearDraftVacio();
-  document.getElementById('c-auditor').value='';
-  document.getElementById('c-operador').value='';
-  document.getElementById('c-linea').value='';
-  document.getElementById('c-fecha').value = draft.fecha;
-  document.getElementById('c-turno').value = 'Matutino';
-  renderTablaMuestras();
-  renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
-  renderTablaMatriz('tabla-calibre','calibre','Fila');
-  renderTablaEncogimiento();
-  renderTablaMatriz('tabla-fuerza','fuerzaSellos','Fila');
-  renderTablaMatriz('tabla-puncion','puncion','Fila');
-  renderTablaAtributos();
-  renderTablaDurometro();
-  renderObservaciones();
-  mostrarMsg('Formulario limpio.', false);
 }
 function mostrarMsg(txt, esError){
   const el = document.getElementById('msg-guardar');
