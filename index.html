@@ -20,6 +20,10 @@
   --recuadro:#dbeafe;
   --borde:#c7d2e5;
   --texto:#1a1f2b;
+  --gris:#475569;
+  --gris-acento:#64748b;
+  --gris-recuadro:#e2e8f0;
+  --gris-borde:#cbd5e1;
 }
 *{box-sizing:border-box;}
 body{
@@ -158,6 +162,29 @@ table.atributos select{border:none;font-size:10.5px;padding:2px;width:44px;backg
 .celda-bloqueada{background:#f1f5f9 !important;color:#94a3b8 !important;cursor:not-allowed;}
 input.celda-bloqueada,select.celda-bloqueada,textarea.celda-bloqueada{opacity:0.75;}
 
+/* ---- Tema gris: Checklist (ASC-F-02), para diferenciarlo de Capturar (azul) ---- */
+.card-gris{border:1px solid var(--gris-borde);}
+.card-gris h2{color:var(--gris);}
+.card-gris h2 .nota{color:#94a3b8;}
+.seg-btn-gris{background:#fff;border:none;border-right:1px solid var(--gris-borde);padding:9px 16px;font-family:inherit;font-weight:600;font-size:13px;color:#334155;cursor:pointer;}
+.seg-btn-gris:last-child{border-right:none;}
+.seg-btn-gris:hover{background:#f1f5f9;}
+.seg-btn-gris.activo{background:var(--gris);color:#fff;}
+.segmented-gris{display:inline-flex;flex-wrap:wrap;border:1px solid var(--gris-borde);border-radius:10px;overflow:hidden;}
+.tabla-check{width:100%;border-collapse:collapse;font-size:13px;}
+.tabla-check th,.tabla-check td{border:1px solid var(--gris-borde);padding:8px 10px;}
+.tabla-check thead th{background:var(--gris-recuadro);color:var(--gris);font-weight:600;font-size:11.5px;text-transform:uppercase;}
+.tabla-check td.num{width:30px;text-align:center;background:#f8fafc;color:#94a3b8;font-weight:600;}
+.tabla-check td.pregunta{font-size:12.5px;line-height:1.4;}
+.tabla-check td.si-no{text-align:center;white-space:nowrap;width:70px;}
+.badge-gris{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--gris-recuadro);color:var(--gris);}
+.btn-gris{background:var(--gris);color:#fff;}
+.subtabs{display:flex;gap:6px;margin-bottom:14px;}
+.subtabs button{background:#fff;border:1px solid var(--borde);padding:8px 16px;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;color:#475569;cursor:pointer;}
+.subtabs button.active{background:var(--azul);color:#fff;border-color:var(--azul);}
+.subview{display:none;}
+.subview.active{display:block;}
+
 .btn{
   border:none;border-radius:8px;padding:9px 16px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;
   transition:filter .15s;
@@ -232,6 +259,7 @@ table.lista tr:hover td{background:#f8fafc;}
   </div>
   <nav class="tabs">
     <button class="tab-btn active" data-view="captura">Capturar</button>
+    <button class="tab-btn" data-view="checklist">Checklist</button>
     <button class="tab-btn" data-view="consulta">Consultar</button>
     <button class="tab-btn" data-view="graficas">Gráficas</button>
   </nav>
@@ -350,44 +378,168 @@ table.lista tr:hover td{background:#f8fafc;}
 
 </section>
 
-<!-- ============ CONSULTA ============ -->
-<section id="view-consulta" class="view">
-  <div class="card">
-    <h2>Filtrar auditorías</h2>
-    <div class="filtros">
-      <div class="campo"><label>Línea</label>
-        <select id="f-linea" onchange="renderLista()">
-          <option value="">Todas</option>
-          <option value="EXT001">EXT001</option>
-          <option value="EXT002">EXT002</option>
-          <option value="EXT003">EXT003</option>
-          <option value="EXT004">EXT004</option>
-          <option value="EXT005">EXT005</option>
-          <option value="EXT006">EXT006</option>
-        </select>
+<!-- ============ CHECKLIST (ASC-F-02) ============ -->
+<section id="view-checklist" class="view">
+
+  <div class="card card-gris">
+    <h2>Sesión de checklist
+      <span class="nota">Se llena una vez por turno — ASC-F-02 Check list Proceso de Extrusión</span>
+    </h2>
+    <div class="grid-cabecera">
+      <div class="campo" style="grid-column:1/-1;">
+        <label>Línea</label>
+        <div class="segmented-gris" id="selector-linea-chk">
+          <button type="button" class="seg-btn-gris" data-linea="EXT001" onclick="seleccionarLineaChk('EXT001')">EXT001</button>
+          <button type="button" class="seg-btn-gris" data-linea="EXT002" onclick="seleccionarLineaChk('EXT002')">EXT002</button>
+          <button type="button" class="seg-btn-gris" data-linea="EXT003" onclick="seleccionarLineaChk('EXT003')">EXT003</button>
+          <button type="button" class="seg-btn-gris" data-linea="EXT004" onclick="seleccionarLineaChk('EXT004')">EXT004</button>
+          <button type="button" class="seg-btn-gris" data-linea="EXT005" onclick="seleccionarLineaChk('EXT005')">EXT005</button>
+          <button type="button" class="seg-btn-gris" data-linea="EXT006" onclick="seleccionarLineaChk('EXT006')">EXT006</button>
+        </div>
       </div>
+      <div class="campo"><label>Fecha</label><input type="date" id="chk-fecha"></div>
       <div class="campo"><label>Turno</label>
-        <select id="f-turno" onchange="renderLista()">
-          <option value="">Todos</option>
+        <select id="chk-turno">
           <option value="Matutino">Matutino</option>
           <option value="Vespertino">Vespertino</option>
           <option value="Nocturno">Nocturno</option>
         </select>
       </div>
-      <div class="campo"><label>Auditor</label><input type="text" id="f-auditor" oninput="renderLista()" placeholder="Todos"></div>
-      <div class="campo"><label>Desde</label><input type="date" id="f-desde" onchange="renderLista()"></div>
-      <div class="campo"><label>Hasta</label><input type="date" id="f-hasta" onchange="renderLista()"></div>
-      <div class="campo"><button class="btn btn-secundario" onclick="limpiarFiltros()">Limpiar filtros</button></div>
+      <div class="campo"><label>Auditor de calidad</label><input type="text" id="chk-auditor" placeholder="Nombre"></div>
+      <div class="campo"><label>Coordinador de calidad</label><input type="text" id="chk-coordinador" placeholder="Nombre"></div>
+    </div>
+    <div class="fila-acciones" style="margin-top:14px;">
+      <button class="btn btn-gris" onclick="iniciarOContinuarChk()">Iniciar / continuar checklist</button>
+      <button class="btn btn-secundario" onclick="nuevoChecklist()">Nuevo checklist (otra línea/turno)</button>
+    </div>
+    <div class="msg" id="msg-sesion-chk" style="margin-top:8px;">Selecciona línea, fecha y turno, y presiona "Iniciar / continuar checklist".</div>
+  </div>
+
+  <div class="card card-gris">
+    <h2>Datos generales</h2>
+    <div class="grid-cabecera">
+      <div class="campo"><label>Hora de auditoría</label><input type="time" id="chk-hora"></div>
+      <div class="campo"><label>Producto</label><input type="text" id="chk-producto"></div>
+      <div class="campo"><label>Código único</label><input type="text" id="chk-codigo"></div>
+      <div class="campo"><label>Id de material</label><input type="text" id="chk-idmaterial"></div>
+      <div class="campo"><label>Operador de máquina</label><input type="text" id="chk-operadormaq"></div>
     </div>
   </div>
-  <div class="card" style="padding:0;">
-    <div style="overflow-x:auto;">
-      <table class="lista" id="tabla-lista">
-        <thead><tr><th>Folio</th><th>Fecha</th><th>Línea</th><th>Turno</th><th>Auditor</th><th>Operador</th><th></th></tr></thead>
-        <tbody></tbody>
+
+  <div class="card card-gris">
+    <h2>Características a evaluar</h2>
+    <div class="tabla-wrap">
+      <table class="tabla-check">
+        <thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th></tr></thead>
+        <tbody id="tabla-check-items"></tbody>
       </table>
     </div>
-    <div class="vacio" id="lista-vacio" style="display:none;">No hay auditorías guardadas todavía.</div>
+  </div>
+
+  <div class="card card-gris">
+    <h2>Temperaturas y valores</h2>
+    <div class="tabla-wrap"><table class="matriz" id="tabla-check-temperaturas"></table></div>
+  </div>
+
+  <div class="card card-gris">
+    <h2>Observaciones</h2>
+    <textarea id="chk-observaciones" rows="3"></textarea>
+  </div>
+
+  <div class="card barra-guardar">
+    <span class="msg" id="msg-guardar-chk">Los campos vacíos se guardan tal cual.</span>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-gris" onclick="guardarChecklist()">Guardar checklist</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ CONSULTA ============ -->
+<section id="view-consulta" class="view">
+  <div class="subtabs">
+    <button class="subtab-btn active" data-sub="atributos" onclick="cambiarSubtabConsulta('atributos')">Atributos (ASC-F-01)</button>
+    <button class="subtab-btn" data-sub="checklist" onclick="cambiarSubtabConsulta('checklist')">Checklist (ASC-F-02)</button>
+  </div>
+
+  <div id="subview-atributos" class="subview active">
+    <div class="card">
+      <h2>Filtrar auditorías</h2>
+      <div class="filtros">
+        <div class="campo"><label>Línea</label>
+          <select id="f-linea" onchange="renderLista()">
+            <option value="">Todas</option>
+            <option value="EXT001">EXT001</option>
+            <option value="EXT002">EXT002</option>
+            <option value="EXT003">EXT003</option>
+            <option value="EXT004">EXT004</option>
+            <option value="EXT005">EXT005</option>
+            <option value="EXT006">EXT006</option>
+          </select>
+        </div>
+        <div class="campo"><label>Turno</label>
+          <select id="f-turno" onchange="renderLista()">
+            <option value="">Todos</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Vespertino">Vespertino</option>
+            <option value="Nocturno">Nocturno</option>
+          </select>
+        </div>
+        <div class="campo"><label>Auditor</label><input type="text" id="f-auditor" oninput="renderLista()" placeholder="Todos"></div>
+        <div class="campo"><label>Desde</label><input type="date" id="f-desde" onchange="renderLista()"></div>
+        <div class="campo"><label>Hasta</label><input type="date" id="f-hasta" onchange="renderLista()"></div>
+        <div class="campo"><button class="btn btn-secundario" onclick="limpiarFiltros()">Limpiar filtros</button></div>
+      </div>
+    </div>
+    <div class="card" style="padding:0;">
+      <div style="overflow-x:auto;">
+        <table class="lista" id="tabla-lista">
+          <thead><tr><th>Folio</th><th>Fecha</th><th>Línea</th><th>Turno</th><th>Auditor</th><th>Operador</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="vacio" id="lista-vacio" style="display:none;">No hay auditorías guardadas todavía.</div>
+    </div>
+  </div>
+
+  <div id="subview-checklist" class="subview">
+    <div class="card">
+      <h2>Filtrar checklists</h2>
+      <div class="filtros">
+        <div class="campo"><label>Línea</label>
+          <select id="fc-linea" onchange="renderListaChk()">
+            <option value="">Todas</option>
+            <option value="EXT001">EXT001</option>
+            <option value="EXT002">EXT002</option>
+            <option value="EXT003">EXT003</option>
+            <option value="EXT004">EXT004</option>
+            <option value="EXT005">EXT005</option>
+            <option value="EXT006">EXT006</option>
+          </select>
+        </div>
+        <div class="campo"><label>Turno</label>
+          <select id="fc-turno" onchange="renderListaChk()">
+            <option value="">Todos</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Vespertino">Vespertino</option>
+            <option value="Nocturno">Nocturno</option>
+          </select>
+        </div>
+        <div class="campo"><label>Auditor</label><input type="text" id="fc-auditor" oninput="renderListaChk()" placeholder="Todos"></div>
+        <div class="campo"><label>Desde</label><input type="date" id="fc-desde" onchange="renderListaChk()"></div>
+        <div class="campo"><label>Hasta</label><input type="date" id="fc-hasta" onchange="renderListaChk()"></div>
+        <div class="campo"><button class="btn btn-secundario" onclick="limpiarFiltrosChk()">Limpiar filtros</button></div>
+      </div>
+    </div>
+    <div class="card" style="padding:0;">
+      <div style="overflow-x:auto;">
+        <table class="lista" id="tabla-lista-chk">
+          <thead><tr><th>Folio</th><th>Fecha</th><th>Línea</th><th>Turno</th><th>Auditor</th><th>Coordinador</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="vacio" id="lista-vacio-chk" style="display:none;">No hay checklists guardados todavía.</div>
+    </div>
   </div>
 </section>
 
@@ -463,6 +615,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const rtdb = firebase.database();
 const RUTA_RTDB = 'auditorias_extrusion';
+const RUTA_RTDB_CHK = 'checklist_extrusion';
 
 const MUESTRAS = ['M1','M2','M3','M4','M5','M6','M7'];
 const ATRIBUTOS = [
@@ -472,6 +625,36 @@ const ATRIBUTOS = [
 ];
 const FILAS_INICIALES = 5;
 const LINEAS_SIN_PUNCION_SELLOS = ['EXT001','EXT002','EXT006'];
+
+const CHECKLIST_ITEMS = [
+  {n:6, texto:'¿Se realizó la revisión de atributos cada bobina por parte del técnico de proceso (sello, deslamine, encogimiento, punción, calibre, ancho plano, burbuja, estabilidad)?'},
+  {n:7, texto:'¿El llenado de registros es adecuado con espacios llenos, cancelación de espacios vacíos, y en caso de error tiene correcciones adecuadas (no amontonar, no corrector, no etiquetas)?'},
+  {n:8, texto:'¿Parámetros de temperatura por extruder son los correctos (ver EXT-F-02 Control de Temperaturas) conforme a la especificación EXT-A-02 Tabla de temperatura de Materia Prima?'},
+  {n:9, texto:'¿Los PQ\'S del área de extruder se monitorean conforme al ASC-A-07 Plan de Calidad Zubex?'},
+  {n:10, texto:'¿La temperatura de los 3 túneles son correctos de las líneas de extruder conforme EXT-A-03 y EXT-A-04?'},
+  {n:11, texto:'¿Las velocidades empleadas en la producción (ver EXT-F-03) se encuentran conforme al EXT-A-12 Tabla de velocidades por producto?'},
+  {n:12, texto:'¿El operador está separando, identificando y comparando las muestras que se miden estabilidad al medio ambiente? (revisar muestras que el operador separa)'},
+  {n:13, texto:'¿Está funcionando correctamente el medidor de ancho plano de la EXT 1 y EXT 2?'},
+  {n:14, texto:'Los contenedores de resinas están identificados y son los nombres correctos.'},
+  {n:15, texto:'La temperatura de los baños son correctos (verificar con termómetro que la temperatura sea la adecuada para el material).'},
+  {n:16, texto:'¿La temperatura de enfriamiento de burbuja de EXT 3 no excede las 62°C? (Aplica para NT250606)'},
+  {n:17, texto:'¿La temperatura de enfriamiento de burbuja de EXT 4 no excede las 62°C? (Aplica para NT250606)'},
+  {n:18, texto:'La etiqueta del producto (bobina) está correcta (revisar que la información contenida sea la correcta conforme al programa de producción, operador y coordinador).'},
+  {n:19, texto:'¿La prueba de burbuja cumple con no tener fugas? (realizar prueba de burbuja)'},
+  {n:20, texto:'¿Los resultados de la medición de estática cumple que no sea mayor a 5 KV?'},
+  {n:21, texto:'¿En la inspección física, los hilos antiestática se encuentran en buen estado? (evaluación visual que no estén aguados, rotos, se retienen los excedentes de los hilos rotos)'},
+  {n:22, texto:'¿Los sacos de materia prima utilizados se encuentran cerrados e identificados con nombre, lote y peso? (saco cerrado con cinta o zuncho, identificado con EXT-F-19 Etiqueta de extruder)'},
+  {n:23, texto:'¿En los reportes de EXT-F-07 Control de Formulaciones, se encuentran anotados los lotes de materia prima empleada?'},
+  {n:24, texto:'¿Las mangueras y pistolas de aire comprimido están colocadas en base y no se encuentran en el piso para evitar la entrada de contaminación?'},
+  {n:25, texto:'¿Las cintas en bobinas se utilizan conforme al código de color? (azul para grumos, naranja para parche, amarilla para picaduras de bajar medida)'},
+  {n:26, texto:'¿Los cristales de las lupas y lámparas de evaluar grumos se encuentran completos y cumplen ASC-P-06? (en caso de estar rotos reportar a coordinador)'}
+];
+const TEMPERATURA_CAMPOS = [
+  {key:'infT1', label:'Inf.T-1'}, {key:'medT1', label:'Med.T-1'}, {key:'supT1', label:'Sup.T-1'},
+  {key:'infT2', label:'Inf.T-2'}, {key:'supT2', label:'Sup.T-2'}, {key:'tBurb', label:'T-Burb'},
+  {key:'tBioret', label:'T-Bioret'}, {key:'choque', label:'Choque'}, {key:'sup', label:'Sup.'},
+  {key:'inf', label:'Inf.'}, {key:'estKv', label:'Est KV'}, {key:'rpm', label:'RPM'}, {key:'pig', label:'Pig'}
+];
 
 let auditorias = []; // caché local de lo leído/guardado
 let modoLocal = false;
@@ -497,6 +680,25 @@ function crearDraftVacio(){
   };
 }
 
+/* ---- Checklist (ASC-F-02): estado y esquema ---- */
+let checklistAuditorias = [];
+let checklistSesionIniciada = false;
+let checklistLineaSeleccionada = '';
+let checklistDraft = crearChecklistDraftVacio();
+
+function crearChecklistDraftVacio(){
+  const temperaturas = {};
+  TEMPERATURA_CAMPOS.forEach(c=> temperaturas[c.key] = '');
+  return {
+    folio:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    auditor:'', coordinador:'',
+    hora:'', producto:'', codigoUnico:'', idMaterial:'', operadorMaquina:'',
+    items: CHECKLIST_ITEMS.map(()=>({cumple:''})),
+    temperaturas,
+    observaciones:''
+  };
+}
+
 /* ================= INIT ================= */
 (async function init(){
   document.getElementById('c-fecha').value = draft.fecha;
@@ -504,6 +706,11 @@ function crearDraftVacio(){
   renderLista();
   renderGraficas();
   escucharAuditorias();
+
+  document.getElementById('chk-fecha').value = checklistDraft.fecha;
+  refrescarTodoChk();
+  renderListaChk();
+  escucharChecklists();
 })();
 
 /* ---- Selección de línea (botones segmentados) ---- */
@@ -661,10 +868,17 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
-    if(btn.dataset.view==='consulta') renderLista();
+    if(btn.dataset.view==='consulta'){ renderLista(); renderListaChk(); }
     if(btn.dataset.view==='graficas') renderGraficas();
   });
 });
+
+function cambiarSubtabConsulta(sub){
+  document.querySelectorAll('.subtabs .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
+  document.getElementById('subview-atributos').classList.toggle('active', sub==='atributos');
+  document.getElementById('subview-checklist').classList.toggle('active', sub==='checklist');
+  if(sub==='checklist') renderListaChk();
+}
 
 /* ================= RENDER: MUESTRAS ================= */
 function renderTablaMuestras(){
@@ -852,6 +1066,285 @@ function mostrarMsg(txt, esError){
   el.className = 'msg ' + (esError?'err':'ok');
 }
 
+/* ================= CHECKLIST (ASC-F-02) ================= */
+function seleccionarLineaChk(valor){
+  checklistLineaSeleccionada = valor;
+  document.querySelectorAll('#selector-linea-chk .seg-btn-gris').forEach(b=>{
+    b.classList.toggle('activo', b.dataset.linea === valor);
+  });
+}
+
+function calcularFolioChk(linea, fecha, turno){
+  return 'CHK_' + linea + '_' + fecha + '_' + turno;
+}
+
+async function iniciarOContinuarChk(){
+  const fecha = document.getElementById('chk-fecha').value || new Date().toISOString().slice(0,10);
+  const turno = document.getElementById('chk-turno').value;
+  if(!checklistLineaSeleccionada){
+    mostrarMsgSesionChk('Selecciona una línea antes de continuar.', true);
+    return;
+  }
+  const folio = calcularFolioChk(checklistLineaSeleccionada, fecha, turno);
+  let existente = checklistAuditorias.find(a=>a.folio===folio);
+  if(!existente && !modoLocal){
+    try{
+      const snap = await rtdb.ref(RUTA_RTDB_CHK + '/' + folio).once('value');
+      existente = snap.val();
+    }catch(e){ existente = null; }
+  }
+  if(existente){
+    checklistDraft = JSON.parse(JSON.stringify(existente));
+  } else {
+    checklistDraft = crearChecklistDraftVacio();
+    checklistDraft.folio = folio;
+    checklistDraft.linea = checklistLineaSeleccionada;
+    checklistDraft.fecha = fecha;
+    checklistDraft.turno = turno;
+  }
+  const auditorInput = document.getElementById('chk-auditor').value.trim();
+  const coordInput = document.getElementById('chk-coordinador').value.trim();
+  if(auditorInput) checklistDraft.auditor = auditorInput;
+  if(coordInput) checklistDraft.coordinador = coordInput;
+
+  checklistSesionIniciada = true;
+  refrescarTodoChk();
+  mostrarMsgSesionChk(existente ? 'Continuando el checklist ya guardado para este turno — puedes corregirlo y volver a guardar.' : 'Checklist nuevo para este turno — completa y guarda cuando termines.', false);
+}
+
+function nuevoChecklist(){
+  if(checklistSesionIniciada && !confirm('¿Iniciar otro checklist? Se descartará lo que no hayas guardado del actual.')) return;
+  checklistSesionIniciada = false;
+  checklistLineaSeleccionada = '';
+  document.querySelectorAll('#selector-linea-chk .seg-btn-gris').forEach(b=>b.classList.remove('activo'));
+  checklistDraft = crearChecklistDraftVacio();
+  document.getElementById('chk-auditor').value='';
+  document.getElementById('chk-coordinador').value='';
+  document.getElementById('chk-fecha').value = checklistDraft.fecha;
+  document.getElementById('chk-turno').value = 'Matutino';
+  refrescarTodoChk();
+  mostrarMsgSesionChk('Selecciona línea, fecha y turno, y presiona "Iniciar / continuar checklist".', false);
+}
+
+function mostrarMsgSesionChk(txt, esError){
+  const el = document.getElementById('msg-sesion-chk');
+  el.textContent = txt;
+  el.className = 'msg ' + (esError?'err':'ok');
+}
+
+function refrescarTodoChk(){
+  document.getElementById('chk-hora').value = checklistDraft.hora;
+  document.getElementById('chk-producto').value = checklistDraft.producto;
+  document.getElementById('chk-codigo').value = checklistDraft.codigoUnico;
+  document.getElementById('chk-idmaterial').value = checklistDraft.idMaterial;
+  document.getElementById('chk-operadormaq').value = checklistDraft.operadorMaquina;
+  document.getElementById('chk-observaciones').value = checklistDraft.observaciones;
+  renderTablaCheckItems();
+  renderTablaCheckTemperaturas();
+}
+
+function renderTablaCheckItems(){
+  const t = document.getElementById('tabla-check-items');
+  const dis = !checklistSesionIniciada;
+  t.innerHTML = CHECKLIST_ITEMS.map((item,i)=>{
+    const celda = checklistDraft.items[i] || {cumple:''};
+    return `<tr>
+      <td class="num">${item.n}</td>
+      <td class="pregunta">${escHtml(item.texto)}</td>
+      <td class="si-no"><input type="radio" name="chk-item-${i}" ${celda.cumple==='si'?'checked':''} ${dis?'disabled':''} onchange="checklistDraft.items[${i}].cumple='si'"></td>
+      <td class="si-no"><input type="radio" name="chk-item-${i}" ${celda.cumple==='no'?'checked':''} ${dis?'disabled':''} onchange="checklistDraft.items[${i}].cumple='no'"></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTablaCheckTemperaturas(){
+  const t = document.getElementById('tabla-check-temperaturas');
+  const dis = !checklistSesionIniciada;
+  let html = '<thead><tr>' + TEMPERATURA_CAMPOS.map(c=>`<th>${c.label}</th>`).join('') + '</tr></thead><tbody><tr>';
+  TEMPERATURA_CAMPOS.forEach(c=>{
+    html += `<td><input type="text" value="${escAttr(checklistDraft.temperaturas[c.key])}" ${dis?'disabled class="celda-bloqueada"':''} oninput="checklistDraft.temperaturas['${c.key}']=this.value"></td>`;
+  });
+  html += '</tr></tbody>';
+  t.innerHTML = html;
+}
+
+async function guardarChecklist(){
+  if(!checklistSesionIniciada){
+    mostrarMsgChk('Primero selecciona línea, fecha y turno, y presiona "Iniciar / continuar checklist".', true);
+    return;
+  }
+  checklistDraft.auditor = document.getElementById('chk-auditor').value;
+  checklistDraft.coordinador = document.getElementById('chk-coordinador').value;
+  checklistDraft.hora = document.getElementById('chk-hora').value;
+  checklistDraft.producto = document.getElementById('chk-producto').value;
+  checklistDraft.codigoUnico = document.getElementById('chk-codigo').value;
+  checklistDraft.idMaterial = document.getElementById('chk-idmaterial').value;
+  checklistDraft.operadorMaquina = document.getElementById('chk-operadormaq').value;
+  checklistDraft.observaciones = document.getElementById('chk-observaciones').value;
+
+  if(!checklistDraft.auditor.trim()){
+    mostrarMsgChk('Indica el nombre del auditor de calidad antes de guardar.', true);
+    return;
+  }
+
+  const ahora = new Date().toISOString();
+  const registro = JSON.parse(JSON.stringify(checklistDraft));
+  registro.actualizado = ahora;
+  if(!registro.creado) registro.creado = ahora;
+
+  try{
+    await rtdb.ref(RUTA_RTDB_CHK + '/' + checklistDraft.folio).set(registro);
+    mostrarMsgChk('Checklist guardado correctamente en la base compartida.', false);
+    renderListaChk();
+  }catch(e){
+    console.error(e);
+    let locales = [];
+    try{ locales = JSON.parse(localStorage.getItem('zubex_checklist_extrusion')||'[]'); }catch(err){ locales=[]; }
+    const pos = locales.findIndex(a=>a.folio===registro.folio);
+    if(pos>=0) locales[pos]=registro; else locales.unshift(registro);
+    localStorage.setItem('zubex_checklist_extrusion', JSON.stringify(locales));
+    mostrarMsgChk('No se pudo confirmar el guardado en la base compartida (revisa conexión/reglas de Firebase). Se guardó localmente en este navegador.', true);
+    const idxExist = checklistAuditorias.findIndex(a=>a.folio===registro.folio);
+    if(idxExist>=0) checklistAuditorias[idxExist]=registro; else checklistAuditorias.unshift(registro);
+    renderListaChk();
+  }
+}
+function mostrarMsgChk(txt, esError){
+  const el = document.getElementById('msg-guardar-chk');
+  el.textContent = txt;
+  el.className = 'msg ' + (esError?'err':'ok');
+}
+
+function escucharChecklists(){
+  rtdb.ref(RUTA_RTDB_CHK).on('value', (snapshot)=>{
+    const val = snapshot.val() || {};
+    checklistAuditorias = Object.values(val);
+    let locales = [];
+    try{ locales = JSON.parse(localStorage.getItem('zubex_checklist_extrusion')||'[]'); }catch(e){ locales = []; }
+    const foliosEnLinea = new Set(checklistAuditorias.map(a=>a.folio));
+    locales.filter(a=>!foliosEnLinea.has(a.folio)).forEach(a=>checklistAuditorias.unshift(a));
+    renderListaChk();
+  }, (err)=>{
+    console.error('Firebase RTDB error (checklist):', err);
+    try{ checklistAuditorias = JSON.parse(localStorage.getItem('zubex_checklist_extrusion')||'[]'); }catch(e){ checklistAuditorias = []; }
+    renderListaChk();
+  });
+}
+
+function filtrarChecklists({linea, turno, auditor, desde, hasta}){
+  return checklistAuditorias.filter(a=>{
+    if(linea && a.linea!==linea) return false;
+    if(turno && a.turno!==turno) return false;
+    if(auditor && !(a.auditor||'').toLowerCase().includes(auditor.toLowerCase())) return false;
+    if(desde && a.fecha < desde) return false;
+    if(hasta && a.fecha > hasta) return false;
+    return true;
+  });
+}
+
+function limpiarFiltrosChk(){
+  document.getElementById('fc-linea').value='';
+  document.getElementById('fc-turno').value='';
+  document.getElementById('fc-auditor').value='';
+  document.getElementById('fc-desde').value='';
+  document.getElementById('fc-hasta').value='';
+  renderListaChk();
+}
+
+function renderListaChk(){
+  const linea = document.getElementById('fc-linea').value;
+  const turno = document.getElementById('fc-turno').value;
+  const auditor = document.getElementById('fc-auditor').value.trim();
+  const desde = document.getElementById('fc-desde').value;
+  const hasta = document.getElementById('fc-hasta').value;
+  const filtradas = filtrarChecklists({linea,turno,auditor,desde,hasta})
+    .slice().sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.creado||'').localeCompare(a.creado||''));
+
+  const tbody = document.querySelector('#tabla-lista-chk tbody');
+  const vacio = document.getElementById('lista-vacio-chk');
+  if(filtradas.length===0){
+    tbody.innerHTML='';
+    vacio.style.display='block';
+    return;
+  }
+  vacio.style.display='none';
+  tbody.innerHTML = filtradas.map(a=>`
+    <tr>
+      <td>${a.folio}</td>
+      <td>${formatoFecha(a.fecha)}</td>
+      <td>${escHtml(a.linea||'—')}</td>
+      <td><span class="badge-gris">${a.turno||'—'}</span></td>
+      <td>${escHtml(a.auditor||'—')}</td>
+      <td>${escHtml(a.coordinador||'—')}</td>
+      <td>
+        <button class="btn btn-secundario btn-sm" onclick="verChecklist('${a.folio}')">Ver</button>
+        <button class="btn btn-peligro btn-sm" onclick="eliminarChecklist('${a.folio}')">Eliminar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+let checklistActual = null;
+function verChecklist(folio){
+  checklistActual = checklistAuditorias.find(a=>a.folio===folio);
+  if(!checklistActual) return;
+  tipoModalActual = 'checklist';
+  document.getElementById('modal-titulo').textContent = 'Checklist ' + folio + ' — ' + formatoFecha(checklistActual.fecha);
+  document.getElementById('modal-body').innerHTML = renderVistaChecklist(checklistActual);
+  document.getElementById('overlay-ver').classList.add('active');
+}
+
+async function eliminarChecklist(folio){
+  const a = checklistAuditorias.find(x=>x.folio===folio);
+  const etiqueta = a ? (a.linea||'') + ' · ' + formatoFecha(a.fecha) + ' · ' + (a.turno||'') : folio;
+  if(!confirm('¿Eliminar definitivamente el checklist ' + etiqueta + '? Esta acción no se puede deshacer.')) return;
+  try{
+    await rtdb.ref(RUTA_RTDB_CHK + '/' + folio).remove();
+  }catch(e){
+    console.error(e);
+    alert('No se pudo eliminar de la base compartida (revisa conexión/reglas de Firebase).');
+    return;
+  }
+  try{
+    let locales = JSON.parse(localStorage.getItem('zubex_checklist_extrusion')||'[]');
+    locales = locales.filter(x=>x.folio!==folio);
+    localStorage.setItem('zubex_checklist_extrusion', JSON.stringify(locales));
+  }catch(e){}
+  checklistAuditorias = checklistAuditorias.filter(x=>x.folio!==folio);
+  renderListaChk();
+}
+
+function renderVistaChecklist(a){
+  let html = `
+  <div class="card card-gris"><h2>Datos generales</h2>
+    <div class="grid-cabecera">
+      <div><strong>Auditor de calidad:</strong> ${escHtml(a.auditor||'—')}</div>
+      <div><strong>Coordinador de calidad:</strong> ${escHtml(a.coordinador||'—')}</div>
+      <div><strong>Línea:</strong> ${escHtml(a.linea||'—')}</div>
+      <div><strong>Fecha:</strong> ${formatoFecha(a.fecha)}</div>
+      <div><strong>Turno:</strong> ${a.turno||'—'}</div>
+      <div><strong>Hora de auditoría:</strong> ${escHtml(a.hora||'—')}</div>
+      <div><strong>Producto:</strong> ${escHtml(a.producto||'—')}</div>
+      <div><strong>Código único:</strong> ${escHtml(a.codigoUnico||'—')}</div>
+      <div><strong>Id de material:</strong> ${escHtml(a.idMaterial||'—')}</div>
+      <div><strong>Operador de máquina:</strong> ${escHtml(a.operadorMaquina||'—')}</div>
+    </div>
+  </div>`;
+
+  html += `<div class="card card-gris"><h2>Características a evaluar</h2><div class="tabla-wrap"><table class="tabla-check"><thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th></tr></thead><tbody>`;
+  CHECKLIST_ITEMS.forEach((item,i)=>{
+    const c = (a.items && a.items[i]) || {cumple:''};
+    html += `<tr><td class="num">${item.n}</td><td class="pregunta">${escHtml(item.texto)}</td><td class="si-no">${c.cumple==='si'?'✔':''}</td><td class="si-no">${c.cumple==='no'?'✔':''}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  html += `<div class="card card-gris"><h2>Temperaturas y valores</h2><div class="tabla-wrap"><table class="matriz"><thead><tr>${TEMPERATURA_CAMPOS.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead><tbody><tr>${TEMPERATURA_CAMPOS.map(c=>`<td>${escHtml(a.temperaturas && a.temperaturas[c.key] || '—')}</td>`).join('')}</tr></tbody></table></div></div>`;
+
+  html += `<div class="card card-gris"><h2>Observaciones</h2><div>${escHtml(a.observaciones||'—')}</div></div>`;
+
+  return html;
+}
+
 /* ================= CONSULTA ================= */
 function limpiarFiltros(){
   document.getElementById('f-linea').value='';
@@ -910,10 +1403,12 @@ function formatoFecha(f){
 }
 
 /* ================= VER / IMPRIMIR ================= */
+let tipoModalActual = 'atributos';
 let auditoriaActual = null;
 function verAuditoria(folio){
   auditoriaActual = auditorias.find(a=>a.folio===folio);
   if(!auditoriaActual) return;
+  tipoModalActual = 'atributos';
   document.getElementById('modal-titulo').textContent = 'Auditoría ' + folio + ' — ' + formatoFecha(auditoriaActual.fecha);
   document.getElementById('modal-body').innerHTML = renderVistaAuditoria(auditoriaActual);
   document.getElementById('overlay-ver').classList.add('active');
@@ -1009,6 +1504,26 @@ function renderVistaAuditoria(a){
 }
 
 function imprimirAuditoria(){
+  if(tipoModalActual === 'checklist'){
+    if(!checklistActual) return;
+    const zona = document.getElementById('zona-impresion');
+    zona.innerHTML = `
+      <div style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #475569;padding-bottom:10px;margin-bottom:16px;">
+          <div style="font-weight:700;font-size:22px;color:#475569;">zubex</div>
+          <div style="text-align:right;font-size:11px;color:#333;">
+            Sistema de Gestión de Inocuidad y Calidad<br>
+            Formato: ASC-F-02 · Revisión 7<br>
+            Folio: ${checklistActual.folio}
+          </div>
+        </div>
+        <h2 style="color:#475569;">Check list Proceso de Extrusión</h2>
+        ${renderVistaChecklist(checklistActual)}
+        <p style="font-size:10px;color:#888;margin-top:20px;">NOTA: Los documentos del Sistema de Gestión de Inocuidad y Calidad de ZUBEX INDUSTRIAL se controlan en RED INTERNA; cualquier copia impresa es SOLO REFERENCIA.</p>
+      </div>`;
+    window.print();
+    return;
+  }
   if(!auditoriaActual) return;
   const zona = document.getElementById('zona-impresion');
   zona.innerHTML = `
