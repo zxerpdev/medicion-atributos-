@@ -305,7 +305,7 @@ table.lista tr:hover td{background:#f8fafc;}
     <div class="tabla-wrap"><table class="matriz" id="tabla-encogimiento"></table></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-fuerza">
     <h2>Fuerza de sellos</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-fuerza"></table></div>
     <div class="fila-acciones no-imprimir">
@@ -314,7 +314,7 @@ table.lista tr:hover td{background:#f8fafc;}
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-puncion">
     <h2>Punción</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-puncion"></table></div>
     <div class="fila-acciones no-imprimir">
@@ -471,6 +471,7 @@ const ATRIBUTOS = [
   'Tensión','Marcas','Desestabilización','Deslisa o se abre rápido'
 ];
 const FILAS_INICIALES = 5;
+const LINEAS_SIN_PUNCION_SELLOS = ['EXT001','EXT002','EXT006'];
 
 let auditorias = []; // caché local de lo leído/guardado
 let modoLocal = false;
@@ -511,6 +512,14 @@ function seleccionarLinea(valor){
   document.querySelectorAll('#selector-linea .seg-btn').forEach(b=>{
     b.classList.toggle('activo', b.dataset.linea === valor);
   });
+  aplicarVisibilidadPruebas(valor);
+}
+
+/* ---- EXT001, EXT002 y EXT006 no llevan Punción ni Fuerza de sellos ---- */
+function aplicarVisibilidadPruebas(linea){
+  const ocultar = LINEAS_SIN_PUNCION_SELLOS.includes(linea);
+  document.getElementById('card-fuerza').style.display = ocultar ? 'none' : '';
+  document.getElementById('card-puncion').style.display = ocultar ? 'none' : '';
 }
 
 /* ---- Folio determinístico: línea + fecha + turno ---- */
@@ -592,6 +601,7 @@ function mostrarMsgSesion(txt, esError){
 
 /* ---- Vuelve a pintar todas las tablas de captura + el progreso de muestras ---- */
 function refrescarTodo(){
+  aplicarVisibilidadPruebas(draft.linea || lineaSeleccionada);
   renderTablaMuestras();
   renderTablaMatriz('tabla-ancho','anchoPlano','Fila');
   renderTablaMatriz('tabla-calibre','calibre','Fila');
@@ -886,7 +896,10 @@ function renderLista(){
       <td><span class="badge-turno">${a.turno||'—'}</span></td>
       <td>${escHtml(a.auditor||'—')}</td>
       <td>${escHtml(a.operador||'—')}</td>
-      <td><button class="btn btn-secundario btn-sm" onclick="verAuditoria('${a.folio}')">Ver</button></td>
+      <td>
+        <button class="btn btn-secundario btn-sm" onclick="verAuditoria('${a.folio}')">Ver</button>
+        <button class="btn btn-peligro btn-sm" onclick="eliminarAuditoria('${a.folio}')">Eliminar</button>
+      </td>
     </tr>
   `).join('');
 }
@@ -904,6 +917,27 @@ function verAuditoria(folio){
   document.getElementById('modal-titulo').textContent = 'Auditoría ' + folio + ' — ' + formatoFecha(auditoriaActual.fecha);
   document.getElementById('modal-body').innerHTML = renderVistaAuditoria(auditoriaActual);
   document.getElementById('overlay-ver').classList.add('active');
+}
+async function eliminarAuditoria(folio){
+  const a = auditorias.find(x=>x.folio===folio);
+  const etiqueta = a ? (a.linea||'') + ' · ' + formatoFecha(a.fecha) + ' · ' + (a.turno||'') : folio;
+  if(!confirm('¿Eliminar definitivamente la auditoría ' + etiqueta + '? Esta acción no se puede deshacer.')) return;
+  try{
+    await rtdb.ref(RUTA_RTDB + '/' + folio).remove();
+  }catch(e){
+    console.error(e);
+    alert('No se pudo eliminar de la base compartida (revisa conexión/reglas de Firebase).');
+    return;
+  }
+  // también la quita de cualquier respaldo local
+  try{
+    let locales = JSON.parse(localStorage.getItem('zubex_auditorias_extrusion')||'[]');
+    locales = locales.filter(x=>x.folio!==folio);
+    localStorage.setItem('zubex_auditorias_extrusion', JSON.stringify(locales));
+  }catch(e){}
+  auditorias = auditorias.filter(x=>x.folio!==folio);
+  renderLista();
+  renderGraficas();
 }
 function cerrarModal(){
   document.getElementById('overlay-ver').classList.remove('active');
@@ -944,8 +978,10 @@ function renderVistaAuditoria(a){
     <tr><td class="etiqueta">SM Cara 2</td>${fila(a.encogimiento.smCara2)}</tr>
   </tbody></table></div></div>`;
 
-  html += tablaDinamica('Fuerza de sellos', a.fuerzaSellos||[]);
-  html += tablaDinamica('Punción', a.puncion||[]);
+  if(!LINEAS_SIN_PUNCION_SELLOS.includes(a.linea)){
+    html += tablaDinamica('Fuerza de sellos', a.fuerzaSellos||[]);
+    html += tablaDinamica('Punción', a.puncion||[]);
+  }
 
   html += `<div class="card"><h2>Auditoría de Atributos: Extrusión</h2><div class="tabla-wrap"><table class="atributos"><thead><tr class="grupo"><th class="nombre" rowspan="2">Atributo</th>${MUESTRAS.map(m=>`<th colspan="3">${m}</th>`).join('')}</tr><tr class="sub">${MUESTRAS.map(()=>'<th>Sí</th><th>No</th><th>Tipo</th>').join('')}</tr></thead><tbody>`;
   ATRIBUTOS.forEach((nom,ai)=>{
