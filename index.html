@@ -983,12 +983,32 @@ function renderTablaEncogimiento(){
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const bloq = celdaBloqueada(i, draftGuardado.encogimiento[f.key][i]);
-      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value"></td>`;
+      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value; actualizarPromedioEncogimiento()"></td>`;
     });
     html += '</tr>';
   });
-  html += '</tbody>';
+  html += '</tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>';
+  MUESTRAS.forEach((m,i)=>{
+    html += `<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaEncogimiento(draft.encogimiento, i))}</td>`;
+  });
+  html += '</tr></tfoot>';
   t.innerHTML = html;
+}
+function promedioColumnaEncogimiento(enc, i){
+  const valores = ['apCara1','apCara2','smCara1','smCara2']
+    .map(key => parseValorNumerico(enc[key][i]))
+    .filter(v=>!isNaN(v));
+  if(valores.length===0) return null;
+  return valores.reduce((a,b)=>a+b,0) / valores.length;
+}
+function actualizarPromedioEncogimiento(){
+  const t = document.getElementById('tabla-encogimiento');
+  const filaProm = t.querySelector('tfoot tr');
+  if(!filaProm) return;
+  const celdas = filaProm.querySelectorAll('td');
+  MUESTRAS.forEach((m,i)=>{
+    if(celdas[i+1]) celdas[i+1].textContent = formatearPromedio(promedioColumnaEncogimiento(draft.encogimiento, i));
+  });
 }
 
 /* ================= RENDER: ATRIBUTOS ================= */
@@ -1031,12 +1051,32 @@ function renderTablaDurometro(){
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const bloq = celdaBloqueada(i, draftGuardado.durometro[f.key][i]);
-      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value"></td>`;
+      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value; actualizarPromedioDurometro()"></td>`;
     });
     html += '</tr>';
   });
-  html += '</tbody>';
+  html += '</tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>';
+  MUESTRAS.forEach((m,i)=>{
+    html += `<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaDurometro(draft.durometro, i))}</td>`;
+  });
+  html += '</tr></tfoot>';
   t.innerHTML = html;
+}
+function promedioColumnaDurometro(dur, i){
+  const valores = ['izquierdo','central','derecho']
+    .map(key => parseValorNumerico(dur[key][i]))
+    .filter(v=>!isNaN(v));
+  if(valores.length===0) return null;
+  return valores.reduce((a,b)=>a+b,0) / valores.length;
+}
+function actualizarPromedioDurometro(){
+  const t = document.getElementById('tabla-durometro');
+  const filaProm = t.querySelector('tfoot tr');
+  if(!filaProm) return;
+  const celdas = filaProm.querySelectorAll('td');
+  MUESTRAS.forEach((m,i)=>{
+    if(celdas[i+1]) celdas[i+1].textContent = formatearPromedio(promedioColumnaDurometro(draft.durometro, i));
+  });
 }
 
 /* ================= RENDER: OBSERVACIONES ================= */
@@ -1525,7 +1565,7 @@ function renderVistaAuditoria(a){
     <tr><td class="etiqueta">AP Cara 2</td>${fila(a.encogimiento.apCara2)}</tr>
     <tr><td class="etiqueta">SM Cara 1</td>${fila(a.encogimiento.smCara1)}</tr>
     <tr><td class="etiqueta">SM Cara 2</td>${fila(a.encogimiento.smCara2)}</tr>
-  </tbody></table></div></div>`;
+  </tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>${MUESTRAS.map((m,i)=>`<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaEncogimiento(a.encogimiento, i))}</td>`).join('')}</tr></tfoot></table></div></div>`;
 
   if(!LINEAS_SIN_PUNCION_SELLOS.includes(a.linea)){
     html += tablaDinamica('Fuerza de sellos', a.fuerzaSellos||[]);
@@ -1546,7 +1586,7 @@ function renderVistaAuditoria(a){
     <tr><td class="etiqueta">Izquierdo</td>${fila(a.durometro.izquierdo)}</tr>
     <tr><td class="etiqueta">Central</td>${fila(a.durometro.central)}</tr>
     <tr><td class="etiqueta">Derecho</td>${fila(a.durometro.derecho)}</tr>
-  </tbody></table></div></div>`;
+  </tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>${MUESTRAS.map((m,i)=>`<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaDurometro(a.durometro, i))}</td>`).join('')}</tr></tfoot></table></div></div>`;
 
   html += `<div class="card"><h2>Observaciones</h2>`;
   MUESTRAS.forEach((m,i)=>{
