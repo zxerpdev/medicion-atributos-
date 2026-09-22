@@ -285,11 +285,12 @@ table.lista tr:hover td{background:#f8fafc;}
         </div>
       </div>
       <div class="campo"><label>Fecha</label><input type="date" id="c-fecha"></div>
-      <div class="campo"><label>Turno</label>
+      <div class="campo"><label>Turno *</label>
         <select id="c-turno">
-          <option value="Matutino">Matutino</option>
-          <option value="Vespertino">Vespertino</option>
-          <option value="Nocturno">Nocturno</option>
+          <option value="">Selecciona…</option>
+          <option value="Dia">Día</option>
+          <option value="Tarde">Tarde</option>
+          <option value="Noche">Noche</option>
         </select>
       </div>
       <div class="campo"><label>Auditor</label><input type="text" id="c-auditor" placeholder="Nombre del auditor"></div>
@@ -313,19 +314,11 @@ table.lista tr:hover td{background:#f8fafc;}
   <div class="card">
     <h2>Medición Ancho Plano</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-ancho"></table></div>
-    <div class="fila-acciones no-imprimir">
-      <button class="btn btn-secundario btn-sm" onclick="agregarFila('anchoPlano')">+ Agregar fila</button>
-      <button class="btn btn-peligro btn-sm" onclick="quitarFila('anchoPlano')">− Quitar última fila</button>
-    </div>
   </div>
 
   <div class="card">
     <h2>Medición de Calibre</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-calibre"></table></div>
-    <div class="fila-acciones no-imprimir">
-      <button class="btn btn-secundario btn-sm" onclick="agregarFila('calibre')">+ Agregar fila</button>
-      <button class="btn btn-peligro btn-sm" onclick="quitarFila('calibre')">− Quitar última fila</button>
-    </div>
   </div>
 
   <div class="card">
@@ -336,19 +329,11 @@ table.lista tr:hover td{background:#f8fafc;}
   <div class="card" id="card-fuerza">
     <h2>Fuerza de sellos</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-fuerza"></table></div>
-    <div class="fila-acciones no-imprimir">
-      <button class="btn btn-secundario btn-sm" onclick="agregarFila('fuerzaSellos')">+ Agregar fila</button>
-      <button class="btn btn-peligro btn-sm" onclick="quitarFila('fuerzaSellos')">− Quitar última fila</button>
-    </div>
   </div>
 
   <div class="card" id="card-puncion">
     <h2>Punción</h2>
     <div class="tabla-wrap"><table class="matriz" id="tabla-puncion"></table></div>
-    <div class="fila-acciones no-imprimir">
-      <button class="btn btn-secundario btn-sm" onclick="agregarFila('puncion')">+ Agregar fila</button>
-      <button class="btn btn-peligro btn-sm" onclick="quitarFila('puncion')">− Quitar última fila</button>
-    </div>
   </div>
 
   <div class="card">
@@ -398,11 +383,12 @@ table.lista tr:hover td{background:#f8fafc;}
         </div>
       </div>
       <div class="campo"><label>Fecha</label><input type="date" id="chk-fecha"></div>
-      <div class="campo"><label>Turno</label>
+      <div class="campo"><label>Turno *</label>
         <select id="chk-turno">
-          <option value="Matutino">Matutino</option>
-          <option value="Vespertino">Vespertino</option>
-          <option value="Nocturno">Nocturno</option>
+          <option value="">Selecciona…</option>
+          <option value="Dia">Día</option>
+          <option value="Tarde">Tarde</option>
+          <option value="Noche">Noche</option>
         </select>
       </div>
       <div class="campo"><label>Auditor de calidad</label><input type="text" id="chk-auditor" placeholder="Nombre"></div>
@@ -480,9 +466,9 @@ table.lista tr:hover td{background:#f8fafc;}
         <div class="campo"><label>Turno</label>
           <select id="f-turno" onchange="renderLista()">
             <option value="">Todos</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Vespertino">Vespertino</option>
-            <option value="Nocturno">Nocturno</option>
+            <option value="Dia">Día</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noche">Noche</option>
           </select>
         </div>
         <div class="campo"><label>Auditor</label><input type="text" id="f-auditor" oninput="renderLista()" placeholder="Todos"></div>
@@ -520,9 +506,9 @@ table.lista tr:hover td{background:#f8fafc;}
         <div class="campo"><label>Turno</label>
           <select id="fc-turno" onchange="renderListaChk()">
             <option value="">Todos</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Vespertino">Vespertino</option>
-            <option value="Nocturno">Nocturno</option>
+            <option value="Dia">Día</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noche">Noche</option>
           </select>
         </div>
         <div class="campo"><label>Auditor</label><input type="text" id="fc-auditor" oninput="renderListaChk()" placeholder="Todos"></div>
@@ -623,7 +609,10 @@ const ATRIBUTOS = [
   'Picaduras y/o navajazos','Parches','Pigmentación y Tonalidad','Rasgaduras',
   'Tensión','Marcas','Desestabilización','Deslisa o se abre rápido'
 ];
-const FILAS_INICIALES = 5;
+const FILAS_ANCHO_PLANO = 12;
+const FILAS_CALIBRE = 12;
+const FILAS_FUERZA_SELLOS = 15;
+const FILAS_PUNCION = 10;
 const LINEAS_SIN_PUNCION_SELLOS = ['EXT001','EXT002','EXT006'];
 
 const CHECKLIST_ITEMS = [
@@ -661,19 +650,21 @@ let modoLocal = false;
 let charts = {};
 let sesionIniciada = false;
 let lineaSeleccionada = '';
+let indiceEnEdicion = null; // si no es null, es la muestra reabierta con el botón "Editar"
 
 let draft = crearDraftVacio();
+let draftGuardado = crearDraftVacio(); // snapshot de lo último guardado en Firebase — define qué celdas quedan bloqueadas
 
 function crearDraftVacio(){
   return {
-    folio:'', auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    folio:'', auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'',
     capturado: MUESTRAS.map(()=>false),
     muestras: MUESTRAS.map(()=>({hora:'',id:'',producto:'',color:'',medida:''})),
-    anchoPlano: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
-    calibre: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    anchoPlano: Array.from({length:FILAS_ANCHO_PLANO}, ()=>MUESTRAS.map(()=>'')),
+    calibre: Array.from({length:FILAS_CALIBRE}, ()=>MUESTRAS.map(()=>'')),
     encogimiento: {apCara1:MUESTRAS.map(()=>''),apCara2:MUESTRAS.map(()=>''),smCara1:MUESTRAS.map(()=>''),smCara2:MUESTRAS.map(()=>'')},
-    fuerzaSellos: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
-    puncion: Array.from({length:FILAS_INICIALES}, ()=>MUESTRAS.map(()=>'')),
+    fuerzaSellos: Array.from({length:FILAS_FUERZA_SELLOS}, ()=>MUESTRAS.map(()=>'')),
+    puncion: Array.from({length:FILAS_PUNCION}, ()=>MUESTRAS.map(()=>'')),
     atributos: ATRIBUTOS.map(()=>MUESTRAS.map(()=>({cumple:'',tipo:''}))),
     durometro: {izquierdo:MUESTRAS.map(()=>''),central:MUESTRAS.map(()=>''),derecho:MUESTRAS.map(()=>'')},
     observaciones: MUESTRAS.map(()=>'')
@@ -690,7 +681,7 @@ function crearChecklistDraftVacio(){
   const temperaturas = {};
   TEMPERATURA_CAMPOS.forEach(c=> temperaturas[c.key] = '');
   return {
-    folio:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'Matutino',
+    folio:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'',
     auditor:'', coordinador:'',
     hora:'', producto:'', codigoUnico:'', idMaterial:'', operadorMaquina:'',
     items: CHECKLIST_ITEMS.map(()=>({cumple:''})),
@@ -734,18 +725,16 @@ function calcularFolio(linea, fecha, turno){
   return linea + '_' + fecha + '_' + turno;
 }
 
-/* ---- Índice de la primera muestra aún no capturada (-1 si ya están las 7) ---- */
-function indiceActual(){
-  if(!draft.capturado) return 0;
-  return draft.capturado.indexOf(false);
-}
-
 /* ---- Inicia una sesión nueva o retoma una existente para línea+fecha+turno ---- */
 async function iniciarOContinuar(){
   const fecha = document.getElementById('c-fecha').value || new Date().toISOString().slice(0,10);
   const turno = document.getElementById('c-turno').value;
   if(!lineaSeleccionada){
     mostrarMsgSesion('Selecciona una línea antes de continuar.', true);
+    return;
+  }
+  if(!turno){
+    mostrarMsgSesion('Selecciona un turno antes de continuar.', true);
     return;
   }
   const folio = calcularFolio(lineaSeleccionada, fecha, turno);
@@ -759,12 +748,18 @@ async function iniciarOContinuar(){
   if(existente){
     draft = JSON.parse(JSON.stringify(existente));
     if(!draft.capturado) draft.capturado = MUESTRAS.map(()=>false);
+    draftGuardado = JSON.parse(JSON.stringify(existente));
   } else {
     draft = crearDraftVacio();
     draft.folio = folio;
     draft.linea = lineaSeleccionada;
     draft.fecha = fecha;
     draft.turno = turno;
+    draftGuardado = crearDraftVacio();
+    draftGuardado.folio = folio;
+    draftGuardado.linea = lineaSeleccionada;
+    draftGuardado.fecha = fecha;
+    draftGuardado.turno = turno;
   }
   const auditorInput = document.getElementById('c-auditor').value.trim();
   const operadorInput = document.getElementById('c-operador').value.trim();
@@ -774,12 +769,13 @@ async function iniciarOContinuar(){
   document.getElementById('c-operador').value = draft.operador || '';
 
   sesionIniciada = true;
+  indiceEnEdicion = null;
   refrescarTodo();
   const idx = indiceActual();
   if(idx === -1){
-    mostrarMsgSesion('Las 7 muestras de este turno ya fueron capturadas. Puedes revisarlas en la pestaña Consultar.', false);
+    mostrarMsgSesion('Las 7 muestras de este turno ya fueron guardadas. Usa "Editar" en la muestra que quieras completar.', false);
   } else if(existente){
-    mostrarMsgSesion('Continuando auditoría existente — captura ahora ' + MUESTRAS[idx] + '. Las muestras anteriores quedan bloqueadas como referencia.', false);
+    mostrarMsgSesion('Continuando auditoría existente — captura ahora ' + MUESTRAS[idx] + '.', false);
   } else {
     mostrarMsgSesion('Auditoría nueva — captura ' + MUESTRAS[idx] + '.', false);
   }
@@ -790,12 +786,14 @@ function nuevaAuditoria(){
   if(sesionIniciada && !confirm('¿Iniciar otra auditoría? Se descartará lo que no hayas guardado de la actual.')) return;
   sesionIniciada = false;
   lineaSeleccionada = '';
+  indiceEnEdicion = null;
   document.querySelectorAll('#selector-linea .seg-btn').forEach(b=>b.classList.remove('activo'));
   draft = crearDraftVacio();
+  draftGuardado = crearDraftVacio();
   document.getElementById('c-auditor').value='';
   document.getElementById('c-operador').value='';
   document.getElementById('c-fecha').value = draft.fecha;
-  document.getElementById('c-turno').value = 'Matutino';
+  document.getElementById('c-turno').value = '';
   refrescarTodo();
   mostrarMsgSesion('Selecciona línea, fecha y turno, y presiona "Iniciar / continuar captura".', false);
 }
@@ -804,6 +802,24 @@ function mostrarMsgSesion(txt, esError){
   const el = document.getElementById('msg-sesion');
   el.textContent = txt;
   el.className = 'msg ' + (esError?'err':'ok');
+}
+
+/* ---- Índice de la primera muestra aún no guardada (-1 si las 7 ya se guardaron) ---- */
+function indiceActual(){
+  if(!draft.capturado) return 0;
+  return draft.capturado.indexOf(false);
+}
+
+/* ---- Muestra activa para edición: la que se reabrió con "Editar", o si no, la siguiente pendiente ---- */
+function indiceActivo(){
+  return indiceEnEdicion !== null ? indiceEnEdicion : indiceActual();
+}
+
+/* ---- Reabre una muestra ya guardada para completar solo sus campos vacíos ---- */
+function editarMuestra(i){
+  indiceEnEdicion = i;
+  refrescarTodo();
+  mostrarMsgSesion('Editando ' + MUESTRAS[i] + ' — los campos que ya tenían datos siguen bloqueados; solo puedes completar los vacíos.', false);
 }
 
 /* ---- Vuelve a pintar todas las tablas de captura + el progreso de muestras ---- */
@@ -823,19 +839,23 @@ function refrescarTodo(){
 
 function renderProgresoMuestras(){
   const cont = document.getElementById('progreso-muestras');
-  const idx = indiceActual();
+  const activo = indiceActivo();
   cont.innerHTML = MUESTRAS.map((m,i)=>{
-    let estado, clase;
-    if(draft.capturado && draft.capturado[i]){ estado='✔ capturada'; clase='pill-ok'; }
-    else if(sesionIniciada && i===idx){ estado='● en captura'; clase='pill-actual'; }
-    else { estado='pendiente'; clase='pill-pendiente'; }
-    return `<span class="pill ${clase}">${m}: ${estado}</span>`;
+    const capturada = draft.capturado && draft.capturado[i];
+    if(capturada){
+      const editando = (i===indiceEnEdicion);
+      return `<span class="pill ${editando?'pill-actual':'pill-ok'}">${m}: ${editando?'✎ editando':'✔ capturada'} <a href="javascript:void(0)" onclick="editarMuestra(${i})" style="margin-left:6px;text-decoration:underline;">Editar</a></span>`;
+    }
+    if(sesionIniciada && i===activo){
+      return `<span class="pill pill-actual">${m}: ● en captura</span>`;
+    }
+    return `<span class="pill pill-pendiente">${m}: pendiente</span>`;
   }).join('');
 }
 
-/* ---- ¿La columna de esta muestra debe mostrarse bloqueada (solo lectura)? ---- */
-function columnaBloqueada(i){
-  return !sesionIniciada || i !== indiceActual();
+/* ---- ¿Debe verse bloqueada (solo lectura) esta celda de la muestra i? ---- */
+function celdaBloqueada(i, valorGuardado){
+  return !sesionIniciada || i !== indiceActivo() || !!valorGuardado;
 }
 
 function escucharAuditorias(){
@@ -880,6 +900,25 @@ function cambiarSubtabConsulta(sub){
   if(sub==='checklist') renderListaChk();
 }
 
+/* ================= ENTER = SIGUIENTE CAMPO (en vez de TAB) ================= */
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  const t = e.target;
+  if(!t.matches('input, select, textarea')) return;
+  e.preventDefault();
+  const focosables = Array.from(document.querySelectorAll(
+    'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+  )).filter(el => el.offsetParent !== null); // solo visibles
+  const idx = focosables.indexOf(t);
+  if(idx > -1 && idx < focosables.length - 1){
+    const siguiente = focosables[idx+1];
+    siguiente.focus();
+    if(typeof siguiente.select === 'function' && siguiente.tagName !== 'SELECT'){
+      try{ siguiente.select(); }catch(err){}
+    }
+  }
+});
+
 /* ================= RENDER: MUESTRAS ================= */
 function renderTablaMuestras(){
   const t = document.getElementById('tabla-muestras');
@@ -894,7 +933,7 @@ function renderTablaMuestras(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      const bloq = columnaBloqueada(i);
+      const bloq = celdaBloqueada(i, draftGuardado.muestras[i] && draftGuardado.muestras[i][f.key]);
       html += `<td><input type="${f.tipo}" value="${escAttr(draft.muestras[i][f.key])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.muestras[${i}]['${f.key}']=this.value"></td>`;
     });
     html += '</tr>';
@@ -910,7 +949,8 @@ function renderTablaMatriz(tablaId, key, etiquetaFila){
   draft[key].forEach((fila,r)=>{
     html += `<tr><td class="etiqueta">${etiquetaFila} ${r+1}</td>`;
     fila.forEach((val,c)=>{
-      const bloq = columnaBloqueada(c);
+      const guardadoVal = draftGuardado[key] && draftGuardado[key][r] && draftGuardado[key][r][c];
+      const bloq = celdaBloqueada(c, guardadoVal);
       html += `<td><input type="text" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value"></td>`;
     });
     html += '</tr>';
@@ -918,17 +958,7 @@ function renderTablaMatriz(tablaId, key, etiquetaFila){
   html += '</tbody>';
   t.innerHTML = html;
 }
-function agregarFila(key){
-  draft[key].push(MUESTRAS.map(()=>''));
-  const map = {anchoPlano:'tabla-ancho', calibre:'tabla-calibre', fuerzaSellos:'tabla-fuerza', puncion:'tabla-puncion'};
-  renderTablaMatriz(map[key], key, 'Fila');
-}
-function quitarFila(key){
-  if(draft[key].length<=1) return;
-  draft[key].pop();
-  const map = {anchoPlano:'tabla-ancho', calibre:'tabla-calibre', fuerzaSellos:'tabla-fuerza', puncion:'tabla-puncion'};
-  renderTablaMatriz(map[key], key, 'Fila');
-}
+
 
 /* ================= RENDER: ENCOGIMIENTO ================= */
 function renderTablaEncogimiento(){
@@ -938,7 +968,7 @@ function renderTablaEncogimiento(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      const bloq = columnaBloqueada(i);
+      const bloq = celdaBloqueada(i, draftGuardado.encogimiento[f.key][i]);
       html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value"></td>`;
     });
     html += '</tr>';
@@ -960,11 +990,12 @@ function renderTablaAtributos(){
     body += `<tr><td class="nombre">${a+1}. ${nom}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const celda = draft.atributos[a][i];
-      const bloq = columnaBloqueada(i);
-      const dis = bloq?'disabled':'';
-      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='si'?'checked':''} ${dis} onchange="draft.atributos[${a}][${i}].cumple='si'"></td>`;
-      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='no'?'checked':''} ${dis} onchange="draft.atributos[${a}][${i}].cumple='no'"></td>`;
-      body += `<td><select ${dis} ${bloq?'class="celda-bloqueada"':''} onchange="draft.atributos[${a}][${i}].tipo=this.value">
+      const guardada = draftGuardado.atributos[a][i];
+      const bloqCumple = celdaBloqueada(i, guardada && guardada.cumple);
+      const bloqTipo = celdaBloqueada(i, guardada && guardada.tipo);
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='si'?'checked':''} ${bloqCumple?'disabled':''} onchange="draft.atributos[${a}][${i}].cumple='si'"></td>`;
+      body += `<td><input type="radio" name="cumple-${a}-${i}" ${celda.cumple==='no'?'checked':''} ${bloqCumple?'disabled':''} onchange="draft.atributos[${a}][${i}].cumple='no'"></td>`;
+      body += `<td><select ${bloqTipo?'disabled class="celda-bloqueada"':''} onchange="draft.atributos[${a}][${i}].tipo=this.value">
         <option value="" ${celda.tipo===''?'selected':''}></option>
         <option value="m" ${celda.tipo==='m'?'selected':''}>m</option>
         <option value="M" ${celda.tipo==='M'?'selected':''}>M</option>
@@ -985,7 +1016,7 @@ function renderTablaDurometro(){
   filas.forEach(f=>{
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
-      const bloq = columnaBloqueada(i);
+      const bloq = celdaBloqueada(i, draftGuardado.durometro[f.key][i]);
       html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value"></td>`;
     });
     html += '</tr>';
@@ -999,7 +1030,7 @@ function renderObservaciones(){
   const cont = document.getElementById('obs-lista');
   let html = '';
   MUESTRAS.forEach((m,i)=>{
-    const bloq = columnaBloqueada(i);
+    const bloq = celdaBloqueada(i, draftGuardado.observaciones[i]);
     html += `<div class="campo" style="margin-bottom:8px;"><label>${m}</label><textarea rows="1" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.observaciones[${i}]=this.value">${escHtml(draft.observaciones[i])}</textarea></div>`;
   });
   cont.innerHTML = html;
@@ -1011,9 +1042,9 @@ async function guardarAuditoria(){
     mostrarMsg('Primero selecciona línea, fecha y turno, y presiona "Iniciar / continuar captura".', true);
     return;
   }
-  const idx = indiceActual();
+  const idx = indiceActivo();
   if(idx === -1){
-    mostrarMsg('Las 7 muestras de este turno ya están capturadas. No hay nada pendiente por guardar.', true);
+    mostrarMsg('Las 7 muestras de este turno ya están guardadas. Usa "Editar" en la muestra que quieras completar.', true);
     return;
   }
 
@@ -1025,6 +1056,7 @@ async function guardarAuditoria(){
     return;
   }
 
+  const editando = (indiceEnEdicion !== null);
   draft.capturado[idx] = true;
   const ahora = new Date().toISOString();
   const registro = JSON.parse(JSON.stringify(draft));
@@ -1034,9 +1066,13 @@ async function guardarAuditoria(){
   try{
     await rtdb.ref(RUTA_RTDB + '/' + draft.folio).set(registro);
     modoLocal = false;
+    draftGuardado = JSON.parse(JSON.stringify(registro)); // lo recién guardado queda bloqueado; lo vacío sigue disponible
+    indiceEnEdicion = null; // vuelve al flujo normal (siguiente muestra pendiente)
     const siguiente = indiceActual();
-    if(siguiente === -1){
-      mostrarMsg(MUESTRAS[idx] + ' guardada. ¡Las 7 muestras de este turno quedaron completas!', false);
+    if(editando){
+      mostrarMsg(MUESTRAS[idx] + ' actualizada. Lo que acabas de llenar quedó bloqueado; si aún falta algo, vuelve a usar "Editar".', false);
+    } else if(siguiente === -1){
+      mostrarMsg(MUESTRAS[idx] + ' guardada. ¡Las 7 muestras de este turno quedaron registradas!', false);
     } else {
       mostrarMsg(MUESTRAS[idx] + ' guardada correctamente. Continúa con ' + MUESTRAS[siguiente] + '.', false);
     }
@@ -1045,15 +1081,15 @@ async function guardarAuditoria(){
     renderGraficas();
   }catch(e){
     console.error(e);
-    draft.capturado[idx] = false; // revertir, no se pudo confirmar el guardado
+    draft.capturado[idx] = draftGuardado.capturado ? !!draftGuardado.capturado[idx] : false; // revertir si no se confirmó
     modoLocal = true;
     let locales = [];
     try{ locales = JSON.parse(localStorage.getItem('zubex_auditorias_extrusion')||'[]'); }catch(err){ locales = []; }
     const pos = locales.findIndex(a=>a.folio===registro.folio);
-    registro.capturado = draft.capturado.slice(0,idx).concat([true]).concat(draft.capturado.slice(idx+1)); // conserva el intento local
     if(pos>=0) locales[pos]=registro; else locales.unshift(registro);
     localStorage.setItem('zubex_auditorias_extrusion', JSON.stringify(locales));
-    draft.capturado[idx] = true;
+    draftGuardado = JSON.parse(JSON.stringify(registro));
+    indiceEnEdicion = null;
     mostrarMsg('No se pudo confirmar el guardado en la base compartida (revisa conexión/reglas de Firebase). Se guardó localmente en este navegador.', true);
     refrescarTodo();
     renderLista();
@@ -1083,6 +1119,10 @@ async function iniciarOContinuarChk(){
   const turno = document.getElementById('chk-turno').value;
   if(!checklistLineaSeleccionada){
     mostrarMsgSesionChk('Selecciona una línea antes de continuar.', true);
+    return;
+  }
+  if(!turno){
+    mostrarMsgSesionChk('Selecciona un turno antes de continuar.', true);
     return;
   }
   const folio = calcularFolioChk(checklistLineaSeleccionada, fecha, turno);
@@ -1121,7 +1161,7 @@ function nuevoChecklist(){
   document.getElementById('chk-auditor').value='';
   document.getElementById('chk-coordinador').value='';
   document.getElementById('chk-fecha').value = checklistDraft.fecha;
-  document.getElementById('chk-turno').value = 'Matutino';
+  document.getElementById('chk-turno').value = '';
   refrescarTodoChk();
   mostrarMsgSesionChk('Selecciona línea, fecha y turno, y presiona "Iniciar / continuar checklist".', false);
 }
