@@ -943,6 +943,16 @@ function renderTablaMuestras(){
 }
 
 /* ================= RENDER: TABLAS MATRIZ DINAMICAS (ancho, calibre, fuerza, puncion) ================= */
+function actualizarPromedioMatriz(tablaId, key){
+  const t = document.getElementById(tablaId);
+  const filaProm = t.querySelector('tfoot tr');
+  if(!filaProm) return;
+  const celdas = filaProm.querySelectorAll('td');
+  MUESTRAS.forEach((m,c)=>{
+    if(celdas[c+1]) celdas[c+1].textContent = formatearPromedio(promedioColumnaMatriz(draft[key], c));
+  });
+}
+
 function renderTablaMatriz(tablaId, key, etiquetaFila){
   const t = document.getElementById(tablaId);
   let html = '<thead><tr><th class="etiqueta">'+etiquetaFila+'</th>' + MUESTRAS.map(m=>`<th>${m}</th>`).join('') + '</tr></thead><tbody>';
@@ -951,11 +961,15 @@ function renderTablaMatriz(tablaId, key, etiquetaFila){
     fila.forEach((val,c)=>{
       const guardadoVal = draftGuardado[key] && draftGuardado[key][r] && draftGuardado[key][r][c];
       const bloq = celdaBloqueada(c, guardadoVal);
-      html += `<td><input type="text" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value"></td>`;
+      html += `<td><input type="text" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value; actualizarPromedioMatriz('${tablaId}','${key}')"></td>`;
     });
     html += '</tr>';
   });
-  html += '</tbody>';
+  html += '</tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>';
+  MUESTRAS.forEach((m,c)=>{
+    html += `<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaMatriz(draft[key], c))}</td>`;
+  });
+  html += '</tr></tfoot>';
   t.innerHTML = html;
 }
 
@@ -1500,7 +1514,7 @@ function renderVistaAuditoria(a){
   const tablaDinamica = (titulo, datos)=>{
     let h = `<div class="card"><h2>${titulo}</h2><div class="tabla-wrap"><table class="matriz"><thead><tr><th class="etiqueta">Fila</th>${MUESTRAS.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
     datos.forEach((f,i)=> h += `<tr><td class="etiqueta">Fila ${i+1}</td>${fila(f)}</tr>`);
-    h += `</tbody></table></div></div>`;
+    h += `</tbody><tfoot><tr><td class="etiqueta" style="font-weight:700;">Promedio</td>${MUESTRAS.map((m,c)=>`<td style="font-weight:700;background:#f8fafc;">${formatearPromedio(promedioColumnaMatriz(datos, c))}</td>`).join('')}</tr></tfoot></table></div></div>`;
     return h;
   };
   html += tablaDinamica('Medición Ancho Plano', a.anchoPlano||[]);
@@ -1585,9 +1599,45 @@ function imprimirAuditoria(){
 
 /* ================= GRAFICAS ================= */
 function promedio(arr){
-  const nums = arr.filter(v=>v!=='' && v!=null && !isNaN(parseFloat(v))).map(v=>parseFloat(v));
+  const nums = arr.filter(v=>v!=='' && v!=null).map(parseValorNumerico).filter(v=>!isNaN(v));
   if(nums.length===0) return null;
   return nums.reduce((a,b)=>a+b,0)/nums.length;
+}
+
+/* ---- Convierte texto de medición a número, soportando fracciones ("8 1/2", "1/2") y coma decimal ---- */
+function parseValorNumerico(str){
+  if(str==null) return NaN;
+  const s = String(str).trim();
+  if(s==='') return NaN;
+  let m = s.match(/^(-?\d+(?:[.,]\d+)?)\s+(\d+)\/(\d+)$/); // "8 1/2"
+  if(m){
+    const entero = parseFloat(m[1].replace(',','.'));
+    const num = parseFloat(m[2]);
+    const den = parseFloat(m[3]);
+    if(!den) return NaN;
+    const frac = num/den;
+    return entero < 0 ? entero - frac : entero + frac;
+  }
+  m = s.match(/^(-?\d+)\/(\d+)$/); // "1/2"
+  if(m){
+    const num = parseFloat(m[1]);
+    const den = parseFloat(m[2]);
+    return den ? num/den : NaN;
+  }
+  const val = parseFloat(s.replace(',','.'));
+  return isNaN(val) ? NaN : val;
+}
+
+/* ---- Promedio de una columna (muestra) dentro de una tabla de mediciones dinámica ---- */
+function promedioColumnaMatriz(matriz, col){
+  if(!matriz) return null;
+  const valores = matriz.map(fila => parseValorNumerico(fila[col])).filter(v=>!isNaN(v));
+  if(valores.length===0) return null;
+  return valores.reduce((a,b)=>a+b,0) / valores.length;
+}
+function formatearPromedio(v){
+  if(v===null || v===undefined) return '—';
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
 }
 function renderGraficas(){
   const linea = document.getElementById('g-linea').value.trim();
