@@ -416,7 +416,7 @@ table.lista tr:hover td{background:#f8fafc;}
     <h2>Características a evaluar</h2>
     <div class="tabla-wrap">
       <table class="tabla-check">
-        <thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th></tr></thead>
+        <thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th><th class="si-no">N/A</th></tr></thead>
         <tbody id="tabla-check-items"></tbody>
       </table>
     </div>
@@ -676,6 +676,7 @@ let checklistAuditorias = [];
 let checklistSesionIniciada = false;
 let checklistLineaSeleccionada = '';
 let checklistDraft = crearChecklistDraftVacio();
+let checklistDraftGuardado = crearChecklistDraftVacio(); // snapshot de lo último guardado — define qué campos quedan bloqueados
 
 function crearChecklistDraftVacio(){
   const temperaturas = {};
@@ -900,9 +901,9 @@ function cambiarSubtabConsulta(sub){
   if(sub==='checklist') renderListaChk();
 }
 
-/* ================= ENTER = SIGUIENTE CAMPO (en vez de TAB) ================= */
+/* ================= ENTER / ↑ / ↓ = NAVEGAR ENTRE CAMPOS (en vez de TAB) ================= */
 document.addEventListener('keydown', function(e){
-  if(e.key !== 'Enter') return;
+  if(e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
   const t = e.target;
   if(!t.matches('input, select, textarea')) return;
   e.preventDefault();
@@ -910,11 +911,13 @@ document.addEventListener('keydown', function(e){
     'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
   )).filter(el => el.offsetParent !== null); // solo visibles
   const idx = focosables.indexOf(t);
-  if(idx > -1 && idx < focosables.length - 1){
-    const siguiente = focosables[idx+1];
-    siguiente.focus();
-    if(typeof siguiente.select === 'function' && siguiente.tagName !== 'SELECT'){
-      try{ siguiente.select(); }catch(err){}
+  const dir = (e.key === 'ArrowUp') ? -1 : 1;
+  const destinoIdx = idx + dir;
+  if(idx > -1 && destinoIdx >= 0 && destinoIdx < focosables.length){
+    const destino = focosables[destinoIdx];
+    destino.focus();
+    if(typeof destino.select === 'function' && destino.tagName !== 'SELECT'){
+      try{ destino.select(); }catch(err){}
     }
   }
 });
@@ -1189,12 +1192,18 @@ async function iniciarOContinuarChk(){
   }
   if(existente){
     checklistDraft = JSON.parse(JSON.stringify(existente));
+    checklistDraftGuardado = JSON.parse(JSON.stringify(existente));
   } else {
     checklistDraft = crearChecklistDraftVacio();
     checklistDraft.folio = folio;
     checklistDraft.linea = checklistLineaSeleccionada;
     checklistDraft.fecha = fecha;
     checklistDraft.turno = turno;
+    checklistDraftGuardado = crearChecklistDraftVacio();
+    checklistDraftGuardado.folio = folio;
+    checklistDraftGuardado.linea = checklistLineaSeleccionada;
+    checklistDraftGuardado.fecha = fecha;
+    checklistDraftGuardado.turno = turno;
   }
   const auditorInput = document.getElementById('chk-auditor').value.trim();
   const coordInput = document.getElementById('chk-coordinador').value.trim();
@@ -1203,7 +1212,7 @@ async function iniciarOContinuarChk(){
 
   checklistSesionIniciada = true;
   refrescarTodoChk();
-  mostrarMsgSesionChk(existente ? 'Continuando el checklist ya guardado para este turno — puedes corregirlo y volver a guardar.' : 'Checklist nuevo para este turno — completa y guarda cuando termines.', false);
+  mostrarMsgSesionChk(existente ? 'Continuando el checklist ya guardado para este turno — los campos que ya tienen datos quedan bloqueados; solo puedes completar los que falten.' : 'Checklist nuevo para este turno — completa y guarda cuando termines.', false);
 }
 
 function nuevoChecklist(){
@@ -1212,6 +1221,7 @@ function nuevoChecklist(){
   checklistLineaSeleccionada = '';
   document.querySelectorAll('#selector-linea-chk .seg-btn-gris').forEach(b=>b.classList.remove('activo'));
   checklistDraft = crearChecklistDraftVacio();
+  checklistDraftGuardado = crearChecklistDraftVacio();
   document.getElementById('chk-auditor').value='';
   document.getElementById('chk-coordinador').value='';
   document.getElementById('chk-fecha').value = checklistDraft.fecha;
@@ -1226,6 +1236,13 @@ function mostrarMsgSesionChk(txt, esError){
   el.className = 'msg ' + (esError?'err':'ok');
 }
 
+function aplicarBloqueoCampoChk(id, valorGuardado){
+  const el = document.getElementById(id);
+  const bloq = !checklistSesionIniciada || !!valorGuardado;
+  el.disabled = bloq;
+  el.classList.toggle('celda-bloqueada', bloq);
+}
+
 function refrescarTodoChk(){
   document.getElementById('chk-hora').value = checklistDraft.hora;
   document.getElementById('chk-producto').value = checklistDraft.producto;
@@ -1233,29 +1250,40 @@ function refrescarTodoChk(){
   document.getElementById('chk-idmaterial').value = checklistDraft.idMaterial;
   document.getElementById('chk-operadormaq').value = checklistDraft.operadorMaquina;
   document.getElementById('chk-observaciones').value = checklistDraft.observaciones;
+
+  aplicarBloqueoCampoChk('chk-hora', checklistDraftGuardado.hora);
+  aplicarBloqueoCampoChk('chk-producto', checklistDraftGuardado.producto);
+  aplicarBloqueoCampoChk('chk-codigo', checklistDraftGuardado.codigoUnico);
+  aplicarBloqueoCampoChk('chk-idmaterial', checklistDraftGuardado.idMaterial);
+  aplicarBloqueoCampoChk('chk-operadormaq', checklistDraftGuardado.operadorMaquina);
+  aplicarBloqueoCampoChk('chk-observaciones', checklistDraftGuardado.observaciones);
+
   renderTablaCheckItems();
   renderTablaCheckTemperaturas();
 }
 
 function renderTablaCheckItems(){
   const t = document.getElementById('tabla-check-items');
-  const dis = !checklistSesionIniciada;
   t.innerHTML = CHECKLIST_ITEMS.map((item,i)=>{
     const celda = checklistDraft.items[i] || {cumple:''};
+    const guardado = (checklistDraftGuardado.items && checklistDraftGuardado.items[i]) || {cumple:''};
+    const dis = !checklistSesionIniciada || !!guardado.cumple;
     return `<tr>
       <td class="num">${item.n}</td>
       <td class="pregunta">${escHtml(item.texto)}</td>
       <td class="si-no"><input type="radio" name="chk-item-${i}" ${celda.cumple==='si'?'checked':''} ${dis?'disabled':''} onchange="checklistDraft.items[${i}].cumple='si'"></td>
       <td class="si-no"><input type="radio" name="chk-item-${i}" ${celda.cumple==='no'?'checked':''} ${dis?'disabled':''} onchange="checklistDraft.items[${i}].cumple='no'"></td>
+      <td class="si-no"><input type="radio" name="chk-item-${i}" ${celda.cumple==='na'?'checked':''} ${dis?'disabled':''} onchange="checklistDraft.items[${i}].cumple='na'"></td>
     </tr>`;
   }).join('');
 }
 
 function renderTablaCheckTemperaturas(){
   const t = document.getElementById('tabla-check-temperaturas');
-  const dis = !checklistSesionIniciada;
   let html = '<thead><tr>' + TEMPERATURA_CAMPOS.map(c=>`<th>${c.label}</th>`).join('') + '</tr></thead><tbody><tr>';
   TEMPERATURA_CAMPOS.forEach(c=>{
+    const guardado = checklistDraftGuardado.temperaturas[c.key];
+    const dis = !checklistSesionIniciada || !!guardado;
     html += `<td><input type="text" value="${escAttr(checklistDraft.temperaturas[c.key])}" ${dis?'disabled class="celda-bloqueada"':''} oninput="checklistDraft.temperaturas['${c.key}']=this.value"></td>`;
   });
   html += '</tr></tbody>';
@@ -1288,7 +1316,9 @@ async function guardarChecklist(){
 
   try{
     await rtdb.ref(RUTA_RTDB_CHK + '/' + checklistDraft.folio).set(registro);
-    mostrarMsgChk('Checklist guardado correctamente en la base compartida.', false);
+    checklistDraftGuardado = JSON.parse(JSON.stringify(registro));
+    mostrarMsgChk('Checklist guardado correctamente en la base compartida. Los campos que acabas de llenar quedaron bloqueados; los que dejaste vacíos siguen disponibles para completarlos después.', false);
+    refrescarTodoChk();
     renderListaChk();
   }catch(e){
     console.error(e);
@@ -1297,9 +1327,11 @@ async function guardarChecklist(){
     const pos = locales.findIndex(a=>a.folio===registro.folio);
     if(pos>=0) locales[pos]=registro; else locales.unshift(registro);
     localStorage.setItem('zubex_checklist_extrusion', JSON.stringify(locales));
+    checklistDraftGuardado = JSON.parse(JSON.stringify(registro));
     mostrarMsgChk('No se pudo confirmar el guardado en la base compartida (revisa conexión/reglas de Firebase). Se guardó localmente en este navegador.', true);
     const idxExist = checklistAuditorias.findIndex(a=>a.folio===registro.folio);
     if(idxExist>=0) checklistAuditorias[idxExist]=registro; else checklistAuditorias.unshift(registro);
+    refrescarTodoChk();
     renderListaChk();
   }
 }
@@ -1425,10 +1457,10 @@ function renderVistaChecklist(a){
     </div>
   </div>`;
 
-  html += `<div class="card card-gris"><h2>Características a evaluar</h2><div class="tabla-wrap"><table class="tabla-check"><thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th></tr></thead><tbody>`;
+  html += `<div class="card card-gris"><h2>Características a evaluar</h2><div class="tabla-wrap"><table class="tabla-check"><thead><tr><th style="width:30px;">#</th><th>Característica</th><th class="si-no">Sí</th><th class="si-no">No</th><th class="si-no">N/A</th></tr></thead><tbody>`;
   CHECKLIST_ITEMS.forEach((item,i)=>{
     const c = (a.items && a.items[i]) || {cumple:''};
-    html += `<tr><td class="num">${item.n}</td><td class="pregunta">${escHtml(item.texto)}</td><td class="si-no">${c.cumple==='si'?'✔':''}</td><td class="si-no">${c.cumple==='no'?'✔':''}</td></tr>`;
+    html += `<tr><td class="num">${item.n}</td><td class="pregunta">${escHtml(item.texto)}</td><td class="si-no">${c.cumple==='si'?'✔':''}</td><td class="si-no">${c.cumple==='no'?'✔':''}</td><td class="si-no">${c.cumple==='na'?'✔':''}</td></tr>`;
   });
   html += `</tbody></table></div></div>`;
 
