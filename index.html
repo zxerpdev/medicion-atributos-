@@ -6,10 +6,8 @@
 <title>ASC-F-01 · Auditoría de Atributos y Variables de Extrusión</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{
   --azul:#0D18A8;
@@ -625,8 +623,32 @@ const firebaseConfig = {
   messagingSenderId: "767811154383",
   appId: "1:767811154383:web:10bad178f5cd330e4562ba"
 };
-firebase.initializeApp(firebaseConfig);
-const rtdb = firebase.database();
+/* ---- Carga de librerías externas SIN bloquear la página ----
+   Si la red bloquea gstatic.com o cdnjs, la página abre igual y trabaja en modo local. */
+const URL_CHART = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+const URL_FB_APP = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+const URL_FB_DB = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js';
+function cargarScript(src, ms){
+  return new Promise(function(resolve){
+    var listo = false;
+    function fin(ok){ if(listo) return; listo = true; resolve(ok); }
+    var el = document.createElement('script');
+    el.src = src;
+    el.onload = function(){ fin(true); };
+    el.onerror = function(){ fin(false); };
+    document.head.appendChild(el);
+    setTimeout(function(){ fin(false); }, ms || 8000);
+  });
+}
+/* Base "sin conexión": hace que la app use su modo local existente */
+const rtdbSinConexion = { ref: function(){ return {
+  on: function(ev, ok, err){ setTimeout(function(){ if(err) err(new Error('sin conexion')); }, 0); },
+  once: function(){ return Promise.reject(new Error('sin conexion')); },
+  set: function(){ return Promise.reject(new Error('sin conexion')); },
+  remove: function(){ return Promise.reject(new Error('sin conexion')); },
+  push: function(){ return Promise.reject(new Error('sin conexion')); }
+}; } };
+let rtdb = rtdbSinConexion;
 const RUTA_RTDB = 'auditorias_extrusion';
 const RUTA_RTDB_CHK = 'checklist_extrusion';
 const RUTA_RTDB_BITACORA = 'bitacora_eliminaciones_extrusion';
@@ -727,15 +749,29 @@ function crearChecklistDraftVacio(){
 
 /* ================= INIT ================= */
 (async function init(){
+  /* 1) Pintar la interfaz de inmediato (sin depender de librerías externas) */
   document.getElementById('c-fecha').value = draft.fecha;
   refrescarTodo();
   renderLista();
-  renderGraficas();
-  escucharAuditorias();
-
   document.getElementById('chk-fecha').value = checklistDraft.fecha;
   refrescarTodoChk();
   renderListaChk();
+
+  /* 2) Cargar Chart.js y Firebase en segundo plano */
+  const [okChart, okFb] = await Promise.all([
+    cargarScript(URL_CHART),
+    cargarScript(URL_FB_APP).then(function(ok){ return ok ? cargarScript(URL_FB_DB) : false; })
+  ]);
+  if(okFb && window.firebase){
+    try{
+      firebase.initializeApp(firebaseConfig);
+      rtdb = firebase.database();
+    }catch(e){ console.error('Firebase no se pudo iniciar:', e); rtdb = rtdbSinConexion; }
+  }
+
+  /* 3) Datos y gráficas */
+  renderGraficas();
+  escucharAuditorias();
   escucharChecklists();
 })();
 
@@ -1880,6 +1916,7 @@ function renderGraficas(){
 }
 
 function dibujarLinea(id, labels, data, label, color){
+  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'line',
@@ -1888,6 +1925,7 @@ function dibujarLinea(id, labels, data, label, color){
   });
 }
 function dibujarBarrasAgrupadas(id, labels, series){
+  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'bar',
@@ -1896,6 +1934,7 @@ function dibujarBarrasAgrupadas(id, labels, series){
   });
 }
 function dibujarBarrasSimples(id, labels, data, colors){
+  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'bar',
