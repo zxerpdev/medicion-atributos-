@@ -238,6 +238,16 @@ table.lista tr:hover td{background:#f8fafc;}
 
 #zona-impresion{display:none;}
 
+/* ---- Modal de autorización para eliminar ---- */
+#overlay-eliminar{z-index:80;align-items:center;}
+.modal-elim{background:#fff;border-radius:14px;max-width:460px;width:100%;overflow:hidden;}
+.modal-elim .modal-head{background:var(--rojo);}
+.modal-elim .cuerpo{padding:20px 22px;}
+.modal-elim .aviso{font-size:12.5px;color:var(--gris);margin:0 0 14px;line-height:1.45;}
+.modal-elim .campo{margin-bottom:12px;}
+.modal-elim .acciones{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+.btn-eliminar{background:var(--rojo);color:#fff;}
+
 @media print{
   header.topbar, nav.tabs, .barra-guardar, .filtros, .fila-acciones, .no-imprimir{display:none !important;}
   body{background:#fff;}
@@ -585,6 +595,23 @@ table.lista tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
+<!-- ============ MODAL AUTORIZAR ELIMINACIÓN ============ -->
+<div class="overlay" id="overlay-eliminar">
+  <div class="modal-elim">
+    <div class="modal-head"><h3>Confirmar eliminación</h3></div>
+    <div class="cuerpo">
+      <p class="aviso" id="elim-descripcion"></p>
+      <div class="campo"><label>Contraseña de autorización *</label><input type="password" id="elim-clave" autocomplete="off"></div>
+      <div class="campo"><label>Motivo de la eliminación *</label><textarea id="elim-motivo" rows="3" placeholder="Explica por qué se elimina este registro"></textarea></div>
+      <div class="msg err" id="elim-error" style="min-height:18px;"></div>
+      <div class="acciones">
+        <button type="button" class="btn btn-secundario" onclick="cancelarEliminacion()">Cancelar</button>
+        <button type="button" class="btn btn-eliminar" onclick="confirmarEliminacion()">Eliminar definitivamente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="zona-impresion"></div>
 
 <script>
@@ -602,6 +629,13 @@ firebase.initializeApp(firebaseConfig);
 const rtdb = firebase.database();
 const RUTA_RTDB = 'auditorias_extrusion';
 const RUTA_RTDB_CHK = 'checklist_extrusion';
+const RUTA_RTDB_BITACORA = 'bitacora_eliminaciones_extrusion';
+const CLAVE_ELIMINACION = 'CAMBIAR_ESTA_CLAVE'; // <-- define aquí la contraseña para eliminar registros
+const MOTIVO_MIN_CARACTERES = 5;
+/* Teclado numérico en tablet: 'decimal' abre el teclado con números y punto/coma.
+   Si en Ancho Plano capturan fracciones (ej. "8 1/2"), cambia MODO_TECLADO_ANCHO a 'text'. */
+const MODO_TECLADO_NUM = 'decimal';
+const MODO_TECLADO_ANCHO = 'decimal';
 
 const MUESTRAS = ['M1','M2','M3','M4','M5','M6','M7'];
 const ATRIBUTOS = [
@@ -964,7 +998,8 @@ function renderTablaMatriz(tablaId, key, etiquetaFila){
     fila.forEach((val,c)=>{
       const guardadoVal = draftGuardado[key] && draftGuardado[key][r] && draftGuardado[key][r][c];
       const bloq = celdaBloqueada(c, guardadoVal);
-      html += `<td><input type="text" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value; actualizarPromedioMatriz('${tablaId}','${key}')"></td>`;
+      const modoTeclado = (key==='anchoPlano') ? MODO_TECLADO_ANCHO : MODO_TECLADO_NUM;
+      html += `<td><input type="text" inputmode="${modoTeclado}" enterkeyhint="next" value="${escAttr(val)}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft['${key}'][${r}][${c}]=this.value; actualizarPromedioMatriz('${tablaId}','${key}')"></td>`;
     });
     html += '</tr>';
   });
@@ -986,7 +1021,7 @@ function renderTablaEncogimiento(){
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const bloq = celdaBloqueada(i, draftGuardado.encogimiento[f.key][i]);
-      html += `<td><input type="text" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value; actualizarPromedioEncogimiento()"></td>`;
+      html += `<td><input type="text" inputmode="${MODO_TECLADO_NUM}" enterkeyhint="next" value="${escAttr(draft.encogimiento[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.encogimiento['${f.key}'][${i}]=this.value; actualizarPromedioEncogimiento()"></td>`;
     });
     html += '</tr>';
   });
@@ -1054,7 +1089,7 @@ function renderTablaDurometro(){
     html += `<tr><td class="etiqueta">${f.label}</td>`;
     MUESTRAS.forEach((m,i)=>{
       const bloq = celdaBloqueada(i, draftGuardado.durometro[f.key][i]);
-      html += `<td><input type="text" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value; actualizarPromedioDurometro()"></td>`;
+      html += `<td><input type="text" inputmode="${MODO_TECLADO_NUM}" enterkeyhint="next" value="${escAttr(draft.durometro[f.key][i])}" ${bloq?'disabled class="celda-bloqueada"':''} oninput="draft.durometro['${f.key}'][${i}]=this.value; actualizarPromedioDurometro()"></td>`;
     });
     html += '</tr>';
   });
@@ -1284,7 +1319,7 @@ function renderTablaCheckTemperaturas(){
   TEMPERATURA_CAMPOS.forEach(c=>{
     const guardado = checklistDraftGuardado.temperaturas[c.key];
     const dis = !checklistSesionIniciada || !!guardado;
-    html += `<td><input type="text" value="${escAttr(checklistDraft.temperaturas[c.key])}" ${dis?'disabled class="celda-bloqueada"':''} oninput="checklistDraft.temperaturas['${c.key}']=this.value"></td>`;
+    html += `<td><input type="text" inputmode="${MODO_TECLADO_NUM}" enterkeyhint="next" value="${escAttr(checklistDraft.temperaturas[c.key])}" ${dis?'disabled class="celda-bloqueada"':''} oninput="checklistDraft.temperaturas['${c.key}']=this.value"></td>`;
   });
   html += '</tr></tbody>';
   t.innerHTML = html;
@@ -1423,7 +1458,15 @@ function verChecklist(folio){
 async function eliminarChecklist(folio){
   const a = checklistAuditorias.find(x=>x.folio===folio);
   const etiqueta = a ? (a.linea||'') + ' · ' + formatoFecha(a.fecha) + ' · ' + (a.turno||'') : folio;
-  if(!confirm('¿Eliminar definitivamente el checklist ' + etiqueta + '? Esta acción no se puede deshacer.')) return;
+  const motivo = await solicitarAutorizacionEliminar('el checklist ' + etiqueta);
+  if(motivo === null) return;
+  try{
+    await registrarEliminacion('checklist', folio, motivo, a);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo registrar la eliminación en la bitácora (revisa conexión/reglas de Firebase). El registro NO fue eliminado.');
+    return;
+  }
   try{
     await rtdb.ref(RUTA_RTDB_CHK + '/' + folio).remove();
   }catch(e){
@@ -1469,6 +1512,55 @@ function renderVistaChecklist(a){
   html += `<div class="card card-gris"><h2>Observaciones</h2><div>${escHtml(a.observaciones||'—')}</div></div>`;
 
   return html;
+}
+
+/* ================= ELIMINACIÓN CON CONTRASEÑA Y MOTIVO ================= */
+let _resolverEliminacion = null;
+
+/* Abre el modal; devuelve una promesa con el motivo (string) si se autoriza, o null si se cancela */
+function solicitarAutorizacionEliminar(descripcion){
+  return new Promise(resolve=>{
+    _resolverEliminacion = resolve;
+    document.getElementById('elim-descripcion').textContent = 'Vas a eliminar ' + descripcion + '. Esta acción no se puede deshacer; se guardará una copia del registro y el motivo en la bitácora de eliminaciones.';
+    document.getElementById('elim-clave').value = '';
+    document.getElementById('elim-motivo').value = '';
+    document.getElementById('elim-error').textContent = '';
+    document.getElementById('overlay-eliminar').classList.add('active');
+    setTimeout(()=>document.getElementById('elim-clave').focus(), 50);
+  });
+}
+function cancelarEliminacion(){
+  document.getElementById('overlay-eliminar').classList.remove('active');
+  if(_resolverEliminacion){ _resolverEliminacion(null); _resolverEliminacion = null; }
+}
+function confirmarEliminacion(){
+  const clave = document.getElementById('elim-clave').value;
+  const motivo = document.getElementById('elim-motivo').value.trim();
+  const err = document.getElementById('elim-error');
+  if(clave !== CLAVE_ELIMINACION){
+    err.textContent = 'Contraseña incorrecta.';
+    return;
+  }
+  if(motivo.length < MOTIVO_MIN_CARACTERES){
+    err.textContent = 'Escribe el motivo de la eliminación (mínimo ' + MOTIVO_MIN_CARACTERES + ' caracteres).';
+    return;
+  }
+  document.getElementById('overlay-eliminar').classList.remove('active');
+  if(_resolverEliminacion){ _resolverEliminacion(motivo); _resolverEliminacion = null; }
+}
+
+/* Guarda en la bitácora: quién/cuándo/por qué + copia del registro eliminado */
+async function registrarEliminacion(tipo, folio, motivo, registro){
+  const entrada = {
+    tipo, folio, motivo,
+    fechaEliminacion: new Date().toISOString(),
+    linea: registro && registro.linea || '',
+    fecha: registro && registro.fecha || '',
+    turno: registro && registro.turno || '',
+    auditor: registro && registro.auditor || '',
+    copia: registro || null
+  };
+  await rtdb.ref(RUTA_RTDB_BITACORA).push(entrada);
 }
 
 /* ================= CONSULTA ================= */
@@ -1542,7 +1634,15 @@ function verAuditoria(folio){
 async function eliminarAuditoria(folio){
   const a = auditorias.find(x=>x.folio===folio);
   const etiqueta = a ? (a.linea||'') + ' · ' + formatoFecha(a.fecha) + ' · ' + (a.turno||'') : folio;
-  if(!confirm('¿Eliminar definitivamente la auditoría ' + etiqueta + '? Esta acción no se puede deshacer.')) return;
+  const motivo = await solicitarAutorizacionEliminar('la auditoría ' + etiqueta);
+  if(motivo === null) return;
+  try{
+    await registrarEliminacion('auditoria', folio, motivo, a);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo registrar la eliminación en la bitácora (revisa conexión/reglas de Firebase). El registro NO fue eliminado.');
+    return;
+  }
   try{
     await rtdb.ref(RUTA_RTDB + '/' + folio).remove();
   }catch(e){
