@@ -6,8 +6,10 @@
 <title>ASC-F-01 · Auditoría de Atributos y Variables de Extrusión</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 :root{
   --azul:#0D18A8;
@@ -623,32 +625,8 @@ const firebaseConfig = {
   messagingSenderId: "767811154383",
   appId: "1:767811154383:web:10bad178f5cd330e4562ba"
 };
-/* ---- Carga de librerías externas SIN bloquear la página ----
-   Si la red bloquea gstatic.com o cdnjs, la página abre igual y trabaja en modo local. */
-const URL_CHART = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
-const URL_FB_APP = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
-const URL_FB_DB = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js';
-function cargarScript(src, ms){
-  return new Promise(function(resolve){
-    var listo = false;
-    function fin(ok){ if(listo) return; listo = true; resolve(ok); }
-    var el = document.createElement('script');
-    el.src = src;
-    el.onload = function(){ fin(true); };
-    el.onerror = function(){ fin(false); };
-    document.head.appendChild(el);
-    setTimeout(function(){ fin(false); }, ms || 8000);
-  });
-}
-/* Base "sin conexión": hace que la app use su modo local existente */
-const rtdbSinConexion = { ref: function(){ return {
-  on: function(ev, ok, err){ setTimeout(function(){ if(err) err(new Error('sin conexion')); }, 0); },
-  once: function(){ return Promise.reject(new Error('sin conexion')); },
-  set: function(){ return Promise.reject(new Error('sin conexion')); },
-  remove: function(){ return Promise.reject(new Error('sin conexion')); },
-  push: function(){ return Promise.reject(new Error('sin conexion')); }
-}; } };
-let rtdb = rtdbSinConexion;
+firebase.initializeApp(firebaseConfig);
+const rtdb = firebase.database();
 const RUTA_RTDB = 'auditorias_extrusion';
 const RUTA_RTDB_CHK = 'checklist_extrusion';
 const RUTA_RTDB_BITACORA = 'bitacora_eliminaciones_extrusion';
@@ -658,6 +636,20 @@ const MOTIVO_MIN_CARACTERES = 5;
    Si en Ancho Plano capturan fracciones (ej. "8 1/2"), cambia MODO_TECLADO_ANCHO a 'text'. */
 const MODO_TECLADO_NUM = 'decimal';
 const MODO_TECLADO_ANCHO = 'decimal';
+
+/* ---- Fecha del turno ----
+   Se usa la hora LOCAL del dispositivo (no UTC, que adelantaba el día a media tarde).
+   A partir de HORA_INICIO_TURNO_NOCHE (22:00) la fecha sugerida ya es la del día siguiente,
+   porque a esa hora arranca el turno de noche. */
+const HORA_INICIO_TURNO_NOCHE = 22;
+function fechaTurnoActual(){
+  const d = new Date();
+  if(d.getHours() >= HORA_INICIO_TURNO_NOCHE) d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dia = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + dia;
+}
 
 const MUESTRAS = ['M1','M2','M3','M4','M5','M6','M7'];
 const ATRIBUTOS = [
@@ -713,7 +705,7 @@ let draftGuardado = crearDraftVacio(); // snapshot de lo último guardado en Fir
 
 function crearDraftVacio(){
   return {
-    folio:'', auditor:'', operador:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'',
+    folio:'', auditor:'', operador:'', linea:'', fecha: fechaTurnoActual(), turno:'',
     capturado: MUESTRAS.map(()=>false),
     muestras: MUESTRAS.map(()=>({hora:'',id:'',producto:'',color:'',medida:''})),
     anchoPlano: Array.from({length:FILAS_ANCHO_PLANO}, ()=>MUESTRAS.map(()=>'')),
@@ -738,7 +730,7 @@ function crearChecklistDraftVacio(){
   const temperaturas = {};
   TEMPERATURA_CAMPOS.forEach(c=> temperaturas[c.key] = '');
   return {
-    folio:'', linea:'', fecha: new Date().toISOString().slice(0,10), turno:'',
+    folio:'', linea:'', fecha: fechaTurnoActual(), turno:'',
     auditor:'', coordinador:'',
     hora:'', producto:'', codigoUnico:'', idMaterial:'', operadorMaquina:'',
     items: CHECKLIST_ITEMS.map(()=>({cumple:''})),
@@ -749,30 +741,29 @@ function crearChecklistDraftVacio(){
 
 /* ================= INIT ================= */
 (async function init(){
-  /* 1) Pintar la interfaz de inmediato (sin depender de librerías externas) */
   document.getElementById('c-fecha').value = draft.fecha;
   refrescarTodo();
   renderLista();
+  renderGraficas();
+  escucharAuditorias();
+
   document.getElementById('chk-fecha').value = checklistDraft.fecha;
   refrescarTodoChk();
   renderListaChk();
-
-  /* 2) Cargar Chart.js y Firebase en segundo plano */
-  const [okChart, okFb] = await Promise.all([
-    cargarScript(URL_CHART),
-    cargarScript(URL_FB_APP).then(function(ok){ return ok ? cargarScript(URL_FB_DB) : false; })
-  ]);
-  if(okFb && window.firebase){
-    try{
-      firebase.initializeApp(firebaseConfig);
-      rtdb = firebase.database();
-    }catch(e){ console.error('Firebase no se pudo iniciar:', e); rtdb = rtdbSinConexion; }
-  }
-
-  /* 3) Datos y gráficas */
-  renderGraficas();
-  escucharAuditorias();
   escucharChecklists();
+
+  // Si la tablet se queda con la pantalla abierta, actualiza la fecha sugerida (p. ej. al llegar las 22:00)
+  // solo mientras no se haya iniciado captura y el usuario no haya cambiado la fecha a mano.
+  let ultimaFechaAuto = fechaTurnoActual();
+  setInterval(()=>{
+    const nueva = fechaTurnoActual();
+    if(nueva === ultimaFechaAuto) return;
+    const cf = document.getElementById('c-fecha');
+    const kf = document.getElementById('chk-fecha');
+    if(!sesionIniciada && cf.value === ultimaFechaAuto) cf.value = nueva;
+    if(!checklistSesionIniciada && kf.value === ultimaFechaAuto) kf.value = nueva;
+    ultimaFechaAuto = nueva;
+  }, 60000);
 })();
 
 /* ---- Selección de línea (botones segmentados) ---- */
@@ -798,7 +789,7 @@ function calcularFolio(linea, fecha, turno){
 
 /* ---- Inicia una sesión nueva o retoma una existente para línea+fecha+turno ---- */
 async function iniciarOContinuar(){
-  const fecha = document.getElementById('c-fecha').value || new Date().toISOString().slice(0,10);
+  const fecha = document.getElementById('c-fecha').value || fechaTurnoActual();
   const turno = document.getElementById('c-turno').value;
   if(!lineaSeleccionada){
     mostrarMsgSesion('Selecciona una línea antes de continuar.', true);
@@ -1243,7 +1234,7 @@ function calcularFolioChk(linea, fecha, turno){
 }
 
 async function iniciarOContinuarChk(){
-  const fecha = document.getElementById('chk-fecha').value || new Date().toISOString().slice(0,10);
+  const fecha = document.getElementById('chk-fecha').value || fechaTurnoActual();
   const turno = document.getElementById('chk-turno').value;
   if(!checklistLineaSeleccionada){
     mostrarMsgSesionChk('Selecciona una línea antes de continuar.', true);
@@ -1916,7 +1907,6 @@ function renderGraficas(){
 }
 
 function dibujarLinea(id, labels, data, label, color){
-  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'line',
@@ -1925,7 +1915,6 @@ function dibujarLinea(id, labels, data, label, color){
   });
 }
 function dibujarBarrasAgrupadas(id, labels, series){
-  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'bar',
@@ -1934,7 +1923,6 @@ function dibujarBarrasAgrupadas(id, labels, series){
   });
 }
 function dibujarBarrasSimples(id, labels, data, colors){
-  if(typeof Chart === 'undefined') return;
   if(charts[id]) charts[id].destroy();
   charts[id] = new Chart(document.getElementById(id), {
     type:'bar',
