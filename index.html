@@ -238,6 +238,27 @@ table.lista tr:hover td{background:#f8fafc;}
 
 #zona-impresion{display:none;}
 
+/* ---- Inicio (resumen para el auditor) ---- */
+.kpi .valor.rojo{color:var(--rojo);}
+.kpi .valor.verde{color:var(--verde);}
+.kpi .sub{font-size:11.5px;color:#64748b;margin-top:2px;font-weight:400;}
+.badge-tipo{display:inline-block;min-width:24px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-align:center;}
+.badge-tipo-C{background:#fee2e2;color:var(--rojo);}
+.badge-tipo-M{background:var(--recuadro);color:var(--azul);}
+.badge-tipo-m{background:#e2e8f0;color:#475569;}
+.guia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+.guia-item{background:#f8fafc;border:1px solid var(--borde);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;}
+.guia-item h3{margin:0 0 6px;font-size:12.5px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:0.3px;}
+.guia-item ul{margin:0;padding-left:18px;}
+.nota-metodologica{font-size:11.5px;color:#64748b;line-height:1.5;}
+td.acciones-inicio{white-space:nowrap;}
+
+/* ---- Barra auxiliar sobre el teclado numérico (agrega "/" y espacio) ---- */
+#barra-num{display:none;position:fixed;top:0;left:0;z-index:90;gap:8px;padding:6px;background:#fff;border:1px solid var(--borde);border-radius:12px;box-shadow:0 2px 12px rgba(15,23,42,0.28);}
+#barra-num button{min-width:64px;height:44px;padding:0 14px;border:none;border-radius:8px;background:var(--azul);color:#fff;font-family:inherit;font-weight:700;font-size:22px;cursor:pointer;touch-action:manipulation;}
+#barra-num button.txt{font-size:13px;background:var(--azul-acento);}
+@media print{ #barra-num{display:none !important;} }
+
 /* ---- Modal de autorización para eliminar ---- */
 #overlay-eliminar{z-index:80;align-items:center;}
 .modal-elim{background:#fff;border-radius:14px;max-width:460px;width:100%;overflow:hidden;}
@@ -268,7 +289,8 @@ table.lista tr:hover td{background:#f8fafc;}
     </div>
   </div>
   <nav class="tabs">
-    <button class="tab-btn active" data-view="captura">Capturar</button>
+    <button class="tab-btn active" data-view="inicio">Inicio</button>
+    <button class="tab-btn" data-view="captura">Capturar</button>
     <button class="tab-btn" data-view="checklist">Checklist</button>
     <button class="tab-btn" data-view="consulta">Consultar</button>
     <button class="tab-btn" data-view="graficas">Gráficas</button>
@@ -277,8 +299,131 @@ table.lista tr:hover td{background:#f8fafc;}
 
 <main>
 
+<!-- ============ INICIO ============ -->
+<section id="view-inicio" class="view active">
+
+  <div class="card">
+    <h2>Turno en consulta
+      <span class="nota">Resumen de lo que el auditor necesita para arrancar y dar seguimiento al turno</span>
+    </h2>
+    <div class="grid-cabecera">
+      <div class="campo"><label>Fecha del turno</label><input type="date" id="inicio-fecha" onchange="inicioCambioManual()"></div>
+      <div class="campo"><label>Turno</label>
+        <select id="inicio-turno" onchange="inicioCambioManual()">
+          <option value="Dia">Día</option>
+          <option value="Tarde">Tarde</option>
+          <option value="Noche">Noche</option>
+        </select>
+      </div>
+      <div class="campo"><label>&nbsp;</label><button class="btn btn-secundario" onclick="inicioRestablecer()">Volver al turno actual</button></div>
+    </div>
+    <div class="msg" id="inicio-resumen-turno" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="valor" id="ini-kpi-lineas">0</div><div class="etiqueta">Líneas con auditoría iniciada</div><div class="sub" id="ini-kpi-lineas-sub"></div></div>
+    <div class="kpi"><div class="valor" id="ini-kpi-muestras">0</div><div class="etiqueta">Muestras capturadas</div><div class="sub" id="ini-kpi-muestras-sub"></div></div>
+    <div class="kpi"><div class="valor" id="ini-kpi-checklists">0</div><div class="etiqueta">Checklists guardados</div><div class="sub" id="ini-kpi-checklists-sub"></div></div>
+    <div class="kpi"><div class="valor" id="ini-kpi-cumplimiento">—</div><div class="etiqueta">% Cumplimiento de atributos</div><div class="sub">Del turno consultado</div></div>
+    <div class="kpi"><div class="valor" id="ini-kpi-nc">0</div><div class="etiqueta">No conformidades</div><div class="sub" id="ini-kpi-nc-sub"></div></div>
+  </div>
+
+  <div class="card" style="padding:0;">
+    <div style="padding:18px 20px 0;"><h2>Avance por línea</h2></div>
+    <div style="overflow-x:auto;">
+      <table class="lista" id="tabla-inicio-lineas">
+        <thead><tr><th>Línea</th><th>Auditoría ASC-F-01 (muestras)</th><th>Checklist ASC-F-02</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="graficas-grid">
+    <div class="card" style="padding:0;">
+      <div style="padding:18px 20px 0;"><h2>No conformidades de atributos</h2></div>
+      <div style="overflow-x:auto;">
+        <table class="lista" id="tabla-inicio-nc">
+          <thead><tr><th>Tipo</th><th>Línea</th><th>Muestra</th><th>Atributo</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="vacio" id="inicio-nc-vacio" style="display:none;">Sin no conformidades registradas en este turno.</div>
+      <div class="nota-metodologica" id="inicio-nc-mas" style="padding:0 20px 14px;"></div>
+    </div>
+    <div class="card" style="padding:0;">
+      <div style="padding:18px 20px 0;"><h2>Checklist: puntos marcados "No"</h2></div>
+      <div style="overflow-x:auto;">
+        <table class="lista" id="tabla-inicio-chk-no">
+          <thead><tr><th>Línea</th><th>#</th><th>Característica</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="vacio" id="inicio-chk-vacio" style="display:none;">Sin puntos marcados "No" en los checklists de este turno.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Guía rápida del auditor</h2>
+    <div class="guia-grid">
+      <div class="guia-item">
+        <h3>Cómo se captura</h3>
+        <ul>
+          <li>Se capturan <strong>7 muestras</strong> por línea y turno (M1–M7), una a la vez.</li>
+          <li>Lo que ya se guardó queda bloqueado; para completar vacíos usa "Editar" en la muestra.</li>
+          <li>El checklist ASC-F-02 se llena <strong>una vez por turno</strong> y por línea.</li>
+          <li>La fecha cambia al día siguiente a partir de las 22:00 (inicio del turno de noche).</li>
+        </ul>
+      </div>
+      <div class="guia-item">
+        <h3>Tipo de no conformidad</h3>
+        <ul>
+          <li><strong>m</strong> = menor</li>
+          <li><strong>M</strong> = Mayor</li>
+          <li><strong>C</strong> = Crítico</li>
+        </ul>
+      </div>
+      <div class="guia-item">
+        <h3>Líneas sin Fuerza de sellos ni Punción</h3>
+        <ul><li>EXT001, EXT002 y EXT006 no llevan estas pruebas.</li></ul>
+      </div>
+      <div class="guia-item">
+        <h3>Límites a verificar (checklist)</h3>
+        <ul>
+          <li>Enfriamiento de burbuja EXT 3 y EXT 4: no exceder <strong>62 °C</strong> (aplica NT250606).</li>
+          <li>Medición de estática: no mayor a <strong>5 KV</strong>.</li>
+          <li>Prueba de burbuja: sin fugas.</li>
+        </ul>
+      </div>
+      <div class="guia-item">
+        <h3>Código de color de cintas</h3>
+        <ul>
+          <li><strong>Azul</strong>: grumos</li>
+          <li><strong>Naranja</strong>: parche</li>
+          <li><strong>Amarilla</strong>: picaduras de bajar medida</li>
+        </ul>
+      </div>
+      <div class="guia-item">
+        <h3>Documentos de referencia</h3>
+        <ul>
+          <li>EXT-F-02 Control de Temperaturas · EXT-A-02 Tabla de temperatura de MP</li>
+          <li>EXT-A-03 / EXT-A-04 Temperatura de túneles</li>
+          <li>EXT-F-03 Velocidades · EXT-A-12 Tabla de velocidades por producto</li>
+          <li>EXT-F-07 Control de Formulaciones · EXT-F-19 Etiqueta de extruder</li>
+          <li>ASC-A-07 Plan de Calidad Zubex · ASC-P-06 (lupas y lámparas)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card nota-metodologica">
+    <strong>Nota metodológica:</strong> el resumen se calcula con los registros guardados en la base compartida (auditorías ASC-F-01 y checklists ASC-F-02) para la fecha y el turno seleccionados, considerando las 6 líneas de extrusión (EXT001–EXT006) y 7 muestras por línea. El % de cumplimiento es Sí / (Sí + No) sobre los atributos ya evaluados. Las no conformidades se ordenan de mayor a menor gravedad (C, M, m).
+    <div style="margin-top:6px;" id="inicio-generado"></div>
+  </div>
+
+</section>
+
 <!-- ============ CAPTURA ============ -->
-<section id="view-captura" class="view active">
+<section id="view-captura" class="view">
 
   <div class="card">
     <h2>Sesión de captura</h2>
@@ -612,6 +757,11 @@ table.lista tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
+<div id="barra-num" aria-label="Teclas auxiliares para captura numérica">
+  <button type="button" data-ins="/">/</button>
+  <button type="button" class="txt" data-ins=" ">Espacio</button>
+</div>
+
 <div id="zona-impresion"></div>
 
 <script>
@@ -633,7 +783,8 @@ const RUTA_RTDB_BITACORA = 'bitacora_eliminaciones_extrusion';
 const CLAVE_ELIMINACION = 'CAMBIAR_ESTA_CLAVE'; // <-- define aquí la contraseña para eliminar registros
 const MOTIVO_MIN_CARACTERES = 5;
 /* Teclado numérico en tablet: 'decimal' abre el teclado con números y punto/coma.
-   Si en Ancho Plano capturan fracciones (ej. "8 1/2"), cambia MODO_TECLADO_ANCHO a 'text'. */
+   Como ese teclado no trae "/" ni espacio, al enfocar un campo numérico aparece una barra
+   auxiliar con las teclas "/" y "Espacio" para capturar fracciones (ej. "8 1/2"). */
 const MODO_TECLADO_NUM = 'decimal';
 const MODO_TECLADO_ANCHO = 'decimal';
 
@@ -642,6 +793,10 @@ const MODO_TECLADO_ANCHO = 'decimal';
    A partir de HORA_INICIO_TURNO_NOCHE (22:00) la fecha sugerida ya es la del día siguiente,
    porque a esa hora arranca el turno de noche. */
 const HORA_INICIO_TURNO_NOCHE = 22;
+const HORA_INICIO_TURNO_DIA = 6;     // 06:00 – 14:00 Día
+const HORA_INICIO_TURNO_TARDE = 14;  // 14:00 – 22:00 Tarde · 22:00 – 06:00 Noche
+const LINEAS = ['EXT001','EXT002','EXT003','EXT004','EXT005','EXT006'];
+let inicioManual = false; // true si el auditor cambió fecha/turno en Inicio
 function fechaTurnoActual(){
   const d = new Date();
   if(d.getHours() >= HORA_INICIO_TURNO_NOCHE) d.setDate(d.getDate() + 1);
@@ -742,6 +897,8 @@ function crearChecklistDraftVacio(){
 /* ================= INIT ================= */
 (async function init(){
   document.getElementById('c-fecha').value = draft.fecha;
+  document.getElementById('inicio-fecha').value = fechaTurnoActual();
+  document.getElementById('inicio-turno').value = turnoActualSugerido();
   refrescarTodo();
   renderLista();
   renderGraficas();
@@ -757,6 +914,12 @@ function crearChecklistDraftVacio(){
   let ultimaFechaAuto = fechaTurnoActual();
   setInterval(()=>{
     const nueva = fechaTurnoActual();
+    if(!inicioManual){
+      const iF = document.getElementById('inicio-fecha');
+      const iT = document.getElementById('inicio-turno');
+      const tSug = turnoActualSugerido();
+      if(iF.value !== nueva || iT.value !== tSug){ iF.value = nueva; iT.value = tSug; renderInicio(); }
+    }
     if(nueva === ultimaFechaAuto) return;
     const cf = document.getElementById('c-fecha');
     const kf = document.getElementById('chk-fecha');
@@ -950,6 +1113,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='inicio') renderInicio();
     if(btn.dataset.view==='consulta'){ renderLista(); renderListaChk(); }
     if(btn.dataset.view==='graficas') renderGraficas();
   });
@@ -1440,6 +1604,7 @@ function limpiarFiltrosChk(){
 }
 
 function renderListaChk(){
+  renderInicio();
   const linea = document.getElementById('fc-linea').value;
   const turno = document.getElementById('fc-turno').value;
   const auditor = document.getElementById('fc-auditor').value.trim();
@@ -1541,6 +1706,162 @@ function renderVistaChecklist(a){
   return html;
 }
 
+/* ================= INICIO (resumen para el auditor) ================= */
+function turnoActualSugerido(){
+  const h = new Date().getHours();
+  if(h >= HORA_INICIO_TURNO_NOCHE || h < HORA_INICIO_TURNO_DIA) return 'Noche';
+  if(h >= HORA_INICIO_TURNO_TARDE) return 'Tarde';
+  return 'Dia';
+}
+function inicioCambioManual(){ inicioManual = true; renderInicio(); }
+function inicioRestablecer(){
+  inicioManual = false;
+  document.getElementById('inicio-fecha').value = fechaTurnoActual();
+  document.getElementById('inicio-turno').value = turnoActualSugerido();
+  renderInicio();
+}
+function activarTab(vista){
+  const b = document.querySelector('.tab-btn[data-view="'+vista+'"]');
+  if(b) b.click();
+}
+
+/* ---- Lleva al auditor a Capturar con línea, fecha y turno ya elegidos ---- */
+function irACapturar(linea){
+  const fecha = document.getElementById('inicio-fecha').value || fechaTurnoActual();
+  const turno = document.getElementById('inicio-turno').value;
+  const folio = calcularFolio(linea, fecha, turno);
+  const mismaSesion = sesionIniciada && draft.folio === folio;
+  if(!mismaSesion){
+    if(sesionIniciada && !confirm('Hay una captura en curso. ¿Cambiar a ' + linea + '? Se descartará lo que no hayas guardado de la actual.')) return;
+    sesionIniciada = false;
+    indiceEnEdicion = null;
+    draft = crearDraftVacio();
+    draftGuardado = crearDraftVacio();
+    seleccionarLinea(linea);
+    document.getElementById('c-fecha').value = fecha;
+    document.getElementById('c-turno').value = turno;
+    refrescarTodo();
+    mostrarMsgSesion('Listo: ' + linea + ' · ' + formatoFecha(fecha) + ' · ' + turno + '. Indica el auditor y presiona "Iniciar / continuar captura".', false);
+  }
+  activarTab('captura');
+}
+
+/* ---- Lleva al auditor al Checklist con línea, fecha y turno ya elegidos ---- */
+function irAChecklist(linea){
+  const fecha = document.getElementById('inicio-fecha').value || fechaTurnoActual();
+  const turno = document.getElementById('inicio-turno').value;
+  const folio = calcularFolioChk(linea, fecha, turno);
+  const mismaSesion = checklistSesionIniciada && checklistDraft.folio === folio;
+  if(!mismaSesion){
+    if(checklistSesionIniciada && !confirm('Hay un checklist en curso. ¿Cambiar a ' + linea + '? Se descartará lo que no hayas guardado del actual.')) return;
+    checklistSesionIniciada = false;
+    checklistDraft = crearChecklistDraftVacio();
+    checklistDraftGuardado = crearChecklistDraftVacio();
+    seleccionarLineaChk(linea);
+    document.getElementById('chk-fecha').value = fecha;
+    document.getElementById('chk-turno').value = turno;
+    refrescarTodoChk();
+    mostrarMsgSesionChk('Listo: ' + linea + ' · ' + formatoFecha(fecha) + ' · ' + turno + '. Indica el auditor y presiona "Iniciar / continuar checklist".', false);
+  }
+  activarTab('checklist');
+}
+
+function renderInicio(){
+  const fechaEl = document.getElementById('inicio-fecha');
+  if(!fechaEl) return;
+  const fecha = fechaEl.value || fechaTurnoActual();
+  const turno = document.getElementById('inicio-turno').value || turnoActualSugerido();
+  const etiquetaTurno = ({Dia:'Día', Tarde:'Tarde', Noche:'Noche'})[turno] || turno;
+  document.getElementById('inicio-resumen-turno').textContent =
+    (inicioManual ? 'Consultando: ' : 'Turno en curso: ') + etiquetaTurno + ' · ' + formatoFecha(fecha);
+
+  const filas = LINEAS.map(l=>{
+    const a = auditorias.find(x=>x.folio === calcularFolio(l, fecha, turno));
+    const c = checklistAuditorias.find(x=>x.folio === calcularFolioChk(l, fecha, turno));
+    const cap = (a && a.capturado) ? MUESTRAS.map((m,i)=>!!a.capturado[i]) : MUESTRAS.map(()=>false);
+    const chkNo = c ? (c.items||[]).filter(it=>it && it.cumple==='no').length : 0;
+    return {linea:l, a, c, cap, n:cap.filter(Boolean).length, chkNo};
+  });
+
+  /* ---- Avance por línea ---- */
+  const tbody = document.querySelector('#tabla-inicio-lineas tbody');
+  tbody.innerHTML = filas.map(f=>{
+    const pills = MUESTRAS.map((m,i)=>`<span class="pill ${f.cap[i]?'pill-ok':'pill-pendiente'}" style="margin:0 4px 0 0;padding:3px 8px;">${m}</span>`).join('');
+    const estadoChk = f.c
+      ? `<span class="pill pill-ok" style="margin:0;">✔ Guardado</span>` + (f.chkNo ? ` <span class="msg err">${f.chkNo} punto(s) en "No"</span>` : '')
+      : `<span class="pill pill-pendiente" style="margin:0;">Pendiente</span>`;
+    return `<tr>
+      <td><strong>${f.linea}</strong></td>
+      <td>${pills} <span class="msg">${f.n}/${MUESTRAS.length}</span></td>
+      <td>${estadoChk}</td>
+      <td class="acciones-inicio">
+        <button class="btn btn-primario btn-sm" onclick="irACapturar('${f.linea}')">Capturar</button>
+        <button class="btn btn-gris btn-sm" onclick="irAChecklist('${f.linea}')">Checklist</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  /* ---- Conteos y no conformidades ---- */
+  let si = 0, no = 0;
+  const ncs = [];
+  filas.forEach(f=>{
+    if(!f.a) return;
+    (f.a.atributos||[]).forEach((fila,ai)=>{
+      fila.forEach((c,mi)=>{
+        if(c.cumple==='si') si++;
+        if(c.cumple==='no'){
+          no++;
+          ncs.push({linea:f.linea, muestra:MUESTRAS[mi], atributo:ATRIBUTOS[ai], tipo:c.tipo||''});
+        }
+      });
+    });
+  });
+  const orden = {C:0, M:1, m:2, '':3};
+  ncs.sort((x,y)=> (orden[x.tipo]-orden[y.tipo]) || x.linea.localeCompare(y.linea) || x.muestra.localeCompare(y.muestra));
+  const criticas = ncs.filter(n=>n.tipo==='C').length;
+  const sinTipo = ncs.filter(n=>n.tipo==='').length;
+
+  /* ---- KPIs ---- */
+  const lineasConAvance = filas.filter(f=>f.n>0).length;
+  const totalMuestras = filas.reduce((t,f)=>t+f.n,0);
+  const totalChk = filas.filter(f=>f.c).length;
+  document.getElementById('ini-kpi-lineas').textContent = lineasConAvance + '/' + LINEAS.length;
+  document.getElementById('ini-kpi-lineas-sub').textContent = (LINEAS.length - lineasConAvance) + ' sin iniciar';
+  document.getElementById('ini-kpi-muestras').textContent = totalMuestras;
+  document.getElementById('ini-kpi-muestras-sub').textContent = 'de ' + (LINEAS.length*MUESTRAS.length) + ' esperadas';
+  document.getElementById('ini-kpi-checklists').textContent = totalChk + '/' + LINEAS.length;
+  document.getElementById('ini-kpi-checklists-sub').textContent = (LINEAS.length - totalChk) + ' pendientes';
+  document.getElementById('ini-kpi-cumplimiento').textContent = (si+no) ? Math.round(si/(si+no)*100) + '%' : '—';
+  const kNc = document.getElementById('ini-kpi-nc');
+  kNc.textContent = no;
+  kNc.className = 'valor' + (criticas>0 ? ' rojo' : '');
+  document.getElementById('ini-kpi-nc-sub').textContent = no ? (criticas + ' críticas' + (sinTipo ? ' · ' + sinTipo + ' sin tipo' : '')) : 'Sin registros';
+
+  /* ---- Tabla de no conformidades (máx. 30) ---- */
+  const MAX_NC = 30;
+  const tbNc = document.querySelector('#tabla-inicio-nc tbody');
+  tbNc.innerHTML = ncs.slice(0, MAX_NC).map(n=>`<tr>
+    <td>${n.tipo ? `<span class="badge-tipo badge-tipo-${n.tipo}">${n.tipo}</span>` : '<span class="msg">—</span>'}</td>
+    <td>${n.linea}</td><td>${n.muestra}</td><td>${escHtml(n.atributo)}</td></tr>`).join('');
+  document.getElementById('inicio-nc-vacio').style.display = ncs.length ? 'none' : 'block';
+  document.getElementById('inicio-nc-mas').textContent = ncs.length > MAX_NC ? 'Y ' + (ncs.length - MAX_NC) + ' más. Consulta el detalle en la pestaña Consultar.' : '';
+
+  /* ---- Checklist: puntos en "No" ---- */
+  const chkNos = [];
+  filas.forEach(f=>{
+    if(!f.c) return;
+    CHECKLIST_ITEMS.forEach((item,i)=>{
+      const it = f.c.items && f.c.items[i];
+      if(it && it.cumple==='no') chkNos.push({linea:f.linea, n:item.n, texto:item.texto});
+    });
+  });
+  document.querySelector('#tabla-inicio-chk-no tbody').innerHTML = chkNos.map(x=>`<tr>
+    <td>${x.linea}</td><td>${x.n}</td><td style="font-size:12px;line-height:1.4;">${escHtml(x.texto)}</td></tr>`).join('');
+  document.getElementById('inicio-chk-vacio').style.display = chkNos.length ? 'none' : 'block';
+
+  document.getElementById('inicio-generado').textContent = 'Generado: ' + new Date().toLocaleString('es-MX');
+}
+
 /* ================= ELIMINACIÓN CON CONTRASEÑA Y MOTIVO ================= */
 let _resolverEliminacion = null;
 
@@ -1610,6 +1931,7 @@ function filtrarAuditorias({linea, turno, auditor, desde, hasta}){
   });
 }
 function renderLista(){
+  renderInicio();
   const linea = document.getElementById('f-linea').value.trim();
   const turno = document.getElementById('f-turno').value;
   const auditor = document.getElementById('f-auditor').value.trim();
@@ -1930,6 +2252,49 @@ function dibujarBarrasSimples(id, labels, data, colors){
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
   });
 }
+
+/* ================= BARRA AUXILIAR: "/" y ESPACIO EN CAMPOS NUMÉRICOS ================= */
+(function(){
+  const barra = document.getElementById('barra-num');
+  if(!barra) return;
+  let campo = null;
+  const esNumerico = el => !!el && el.tagName === 'INPUT' && el.getAttribute('inputmode') === 'decimal' && !el.disabled;
+
+  function posicionar(){
+    if(barra.style.display !== 'flex') return;
+    const vv = window.visualViewport; // sigue al teclado en tablet
+    if(vv){
+      barra.style.top  = Math.max(0, vv.offsetTop + vv.height - barra.offsetHeight - 8) + 'px';
+      barra.style.left = Math.max(0, vv.offsetLeft + vv.width - barra.offsetWidth - 12) + 'px';
+    } else {
+      barra.style.top = Math.max(0, window.innerHeight - barra.offsetHeight - 8) + 'px';
+      barra.style.left = Math.max(0, window.innerWidth - barra.offsetWidth - 12) + 'px';
+    }
+  }
+  function mostrar(el){ campo = el; barra.style.display = 'flex'; posicionar(); }
+  function ocultar(){ campo = null; barra.style.display = 'none'; }
+
+  document.addEventListener('focusin', e=>{ if(esNumerico(e.target)) mostrar(e.target); else ocultar(); });
+  document.addEventListener('focusout', ()=>{ setTimeout(()=>{ if(!esNumerico(document.activeElement)) ocultar(); }, 150); });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', posicionar);
+    window.visualViewport.addEventListener('scroll', posicionar);
+  }
+
+  function insertar(txt){
+    if(!campo) return;
+    const ini = (campo.selectionStart != null) ? campo.selectionStart : campo.value.length;
+    const fin = (campo.selectionEnd != null) ? campo.selectionEnd : ini;
+    campo.value = campo.value.slice(0, ini) + txt + campo.value.slice(fin);
+    try{ campo.setSelectionRange(ini + txt.length, ini + txt.length); }catch(e){}
+    campo.dispatchEvent(new Event('input', {bubbles:true})); // actualiza el borrador y los promedios
+  }
+  barra.querySelectorAll('button').forEach(b=>{
+    const accion = e=>{ e.preventDefault(); insertar(b.dataset.ins); }; // preventDefault: el campo no pierde el foco ni se cierra el teclado
+    b.addEventListener('mousedown', accion);
+    b.addEventListener('touchstart', accion, {passive:false});
+  });
+})();
 
 /* ================= UTIL ================= */
 function escHtml(s){
